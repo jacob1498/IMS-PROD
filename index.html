@@ -155,7 +155,7 @@
             display: flex; flex-direction: column; align-items: center; gap: 2px;
             background: none; border: none; color: var(--text-light);
             padding: 4px; font-size: 0.65rem; font-weight: 700; cursor: pointer;
-            width: 25%; transition: color 0.2s;
+            width: 20%; transition: color 0.2s;
         }
         .footer-nav-item.active { color: var(--primary); }
         .footer-nav-item .material-symbols-outlined { font-size: 24px; }
@@ -490,6 +490,20 @@
             }
         }
 
+        /* Global Search Overlay Styles */
+        .search-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%;
+            background: white;
+            padding: 15px 20px;
+            display: none;
+            align-items: center;
+            z-index: 2200;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            animation: slideDown 0.3s ease;
+        }
+        .search-overlay.show { display: flex; }
+
         /* Modal Styles */
         .modal-overlay {
             position: fixed;
@@ -661,9 +675,6 @@
                             </div>
                         </div>
                     </div>
-                    <div class="search-area">
-                        <input type="text" id="checkinSearchInput" placeholder="🔍 Filter list by name or ID..." oninput="render()" style="background: transparent; border: none; padding: 4px 0;">
-                    </div>
                     <ul id="attendanceList"></ul>
                 </div>
 
@@ -677,9 +688,6 @@
                             <span class="material-symbols-outlined" style="font-size:18px">close</span> Clear
                         </button>
                     </div>
-                    <div class="search-area">
-                        <input type="text" id="historySearchInput" placeholder="🔍 Filter history by name or ID..." oninput="render()" style="background: transparent; border: none; padding: 4px 0;">
-                    </div>
                     <ul id="historyList"></ul>
                 </div>
 
@@ -690,9 +698,6 @@
                             <span class="material-symbols-outlined">person_add</span>
                             Register New
                         </button>
-                    </div>
-                    <div class="search-area">
-                        <input type="text" id="registerSearchInput" placeholder="🔍 Filter members by name or ID..." oninput="render()" style="background: transparent; border: none; padding: 4px 0;">
                     </div>
                     <ul id="registerList"></ul>
                 </div>
@@ -785,6 +790,15 @@
                     </button>
                 </div>
             </div>
+        </div>
+
+        <!-- Global Search Overlay -->
+        <div id="globalSearchOverlay" class="search-overlay">
+            <span class="material-symbols-outlined" style="color:var(--text-light); margin-right:10px">search</span>
+            <input type="text" id="globalSearchInput" placeholder="Search names or IDs..." oninput="render()" style="flex:1; border:none; outline:none; font-size:1rem; background:transparent;">
+            <button onclick="toggleSearchOverlay()" style="background:none; color:var(--text-light); padding:5px">
+                <span class="material-symbols-outlined">close</span>
+            </button>
         </div>
 
         <!-- Mobile Scan Overlay (Camera) -->
@@ -1171,6 +1185,18 @@
             }
         }
 
+        function toggleSearchOverlay() {
+            const overlay = document.getElementById('globalSearchOverlay');
+            const isOpening = !overlay.classList.contains('show');
+            overlay.classList.toggle('show');
+            if (isOpening) {
+                document.getElementById('globalSearchInput').focus();
+            } else {
+                document.getElementById('globalSearchInput').value = '';
+                render();
+            }
+        }
+
         function stopScanner() {
             if (html5QrCode && html5QrCode.isScanning) {
                 html5QrCode.stop().catch(err => console.error(err));
@@ -1356,20 +1382,18 @@
             const taskList = document.getElementById('taskList');
             const progressBar = document.getElementById('progress-bar');
 
-            const checkinSearch = document.getElementById('checkinSearchInput') ? 
-                document.getElementById('checkinSearchInput').value.toLowerCase() : '';
-            const historySearch = document.getElementById('historySearchInput') ? 
-                document.getElementById('historySearchInput').value.toLowerCase() : '';
+            // Global search logic
+            const globalSearch = document.getElementById('globalSearchInput') ? 
+                document.getElementById('globalSearchInput').value.toLowerCase() : '';
+
             const historyFromDate = state.historyFilterFromDate;
             const historyToDate = state.historyFilterToDate;
-            const registerSearch = document.getElementById('registerSearchInput') ? 
-                document.getElementById('registerSearchInput').value.toLowerCase() : '';
 
             // Render Attendance List (Check-in view)
             const checkedInMembers = state.members
                 .map((m, i) => ({ ...m, index: i }))
                 .filter(m => m.status !== 'Away' && 
-                    (m.name.toLowerCase().includes(checkinSearch) || m.userId.toLowerCase().includes(checkinSearch))
+                    (m.name.toLowerCase().includes(globalSearch) || m.userId.toLowerCase().includes(globalSearch))
                 );
 
             const checkinHeader = `
@@ -1409,7 +1433,7 @@
                         </button>
                     </div>
                 </li>
-            `).join('') : `<div class="empty-state">${checkinSearch ? 'No matching members found.' : 'No one checked in yet. Scan ID to start.'}</div>`;
+            `).join('') : `<div class="empty-state">${globalSearch ? 'No matching members found.' : 'No one checked in yet. Scan ID to start.'}</div>`;
 
             if (checkedInMembers.length > checkinLimit) {
                 attendanceList.innerHTML += `
@@ -1424,7 +1448,7 @@
             const checkedOutMembers = state.members
                 .map((m, i) => ({ ...m, index: i }))
                 .filter(m => {
-                    const matchesSearch = m.name.toLowerCase().includes(historySearch) || m.userId.toLowerCase().includes(historySearch);
+                    const matchesSearch = m.name.toLowerCase().includes(globalSearch) || m.userId.toLowerCase().includes(globalSearch);
                     const isAwayAndTimedIn = m.status === 'Away' && m.timeIn !== '--';
 
                     if (!isAwayAndTimedIn) return false;
@@ -1464,7 +1488,7 @@
                             </button>
                         </div>
                     </li>
-                `).join('') : `<div class="empty-state">${historySearch ? 'No matching records found.' : 'No check-out records found for today.'}</div>`;
+                `).join('') : `<div class="empty-state">${globalSearch ? 'No matching records found.' : 'No check-out records found for today.'}</div>`;
 
                 if (checkedOutMembers.length > historyLimit) {
                     historyList.innerHTML += `
@@ -1489,7 +1513,7 @@
                 const filteredRegister = state.members
                     .map((m, i) => ({ ...m, index: i }))
                     .filter(m => 
-                        (m.name.toLowerCase().includes(registerSearch) || m.userId.toLowerCase().includes(registerSearch))
+                        (m.name.toLowerCase().includes(globalSearch) || m.userId.toLowerCase().includes(globalSearch))
                     );
 
                 const registerLimit = displayLimits.register;
@@ -1513,7 +1537,7 @@
                             </button>
                         </div>
                     </li>
-                `).join('') : `<div class="empty-state">${registerSearch ? 'No matching members found.' : 'No members to manage.'}</div>`;
+                `).join('') : `<div class="empty-state">${globalSearch ? 'No matching members found.' : 'No members to manage.'}</div>`;
 
                 if (filteredRegister.length > registerLimit) {
                     registerList.innerHTML += `
