@@ -759,7 +759,17 @@
                 <div class="progress-container">
                     <div id="progress-bar"></div>
                 </div>
-                <div class="input-group" style="flex-wrap: wrap;">
+                <div class="tab-group" style="margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                    <button id="activeProdTabBtn" class="active" onclick="switchProductivitySubTab('active')" style="padding: 5px 10px; font-size: 0.8rem;">
+                        <span class="material-symbols-outlined" style="font-size:18px">play_circle</span>
+                        Active Sessions
+                    </button>
+                    <button id="historyProdTabBtn" onclick="switchProductivitySubTab('history')" style="padding: 5px 10px; font-size: 0.8rem;">
+                        <span class="material-symbols-outlined" style="font-size:18px">history</span>
+                        History
+                    </button>
+                </div>
+                <div id="productivityInputGroup" class="input-group" style="flex-wrap: wrap;">
                     <div id="binTypeToggle" style="display: flex; background: var(--bg); border-radius: 6px; padding: 2px; border: 1px solid var(--border);">
                         <button id="btnPick" onclick="setBinType('Pick')" style="background: var(--primary); color: white; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px;">Pick</button>
                         <button id="btnRes" onclick="setBinType('Reserved')" style="background: transparent; color: var(--text-light); padding: 6px 12px; font-size: 0.75rem; border-radius: 4px;">Reserved</button>
@@ -775,6 +785,12 @@
                     <button onclick="toggleScanOverlay()" title="Scan QR Code">
                         <span class="material-symbols-outlined">qr_code_scanner</span>
                         Scan
+                    </button>
+                </div>
+                <div id="prodHistoryControls" class="hidden" style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
+                    <button onclick="clearProductivityHistory()" style="background: var(--danger); font-size: 0.75rem; padding: 6px 12px;">
+                        <span class="material-symbols-outlined" style="font-size:16px">delete_sweep</span>
+                        Clear History
                     </button>
                 </div>
                 <div class="table-header" style="margin-top: 10px;">
@@ -1065,8 +1081,9 @@
             tasks: []
         };
 
+        let activeProductivitySubTab = 'active';
         // Runtime display limits for pagination/load more
-        let displayLimits = { checkin: 10, history: 10, register: 10 };
+        let displayLimits = { checkin: 10, history: 10, register: 10, prodHistory: 10 };
 
         function loadMore(type) {
             displayLimits[type] += 10;
@@ -1193,6 +1210,15 @@
             if (sideAttSub) {
                 sideAttSub.classList.toggle('hidden', tab !== 'attendance');
             }
+        }
+
+        function switchProductivitySubTab(tab) {
+            activeProductivitySubTab = tab;
+            document.getElementById('activeProdTabBtn').classList.toggle('active', tab === 'active');
+            document.getElementById('historyProdTabBtn').classList.toggle('active', tab === 'history');
+            document.getElementById('productivityInputGroup').classList.toggle('hidden', tab !== 'active');
+            document.getElementById('prodHistoryControls').classList.toggle('hidden', tab !== 'history');
+            render();
         }
 
         function switchAttendanceSubTab(tab) {
@@ -1676,6 +1702,12 @@
             }
         }
 
+        function clearProductivityHistory() {
+            if (!confirm("Are you sure you want to clear all completed cycle count records?")) return;
+            state.tasks = state.tasks.filter(t => !t.completed);
+            saveData();
+        }
+
         function closeZoneModal() {
             document.getElementById('zoneModal').classList.add('hidden');
         }
@@ -1995,8 +2027,16 @@
                 }
             }
 
-            // Render Tasks
-            taskList.innerHTML = state.tasks.length ? state.tasks.map((t, i) => {
+            // Render Tasks (Filtered by Active/History Tab)
+            const tasksToShow = state.tasks
+                .map((t, i) => ({ ...t, originalIndex: i }))
+                .filter(t => activeProductivitySubTab === 'active' ? !t.completed : t.completed)
+                .reverse();
+
+            const prodLimit = activeProductivitySubTab === 'active' ? 999 : displayLimits.prodHistory;
+
+            taskList.innerHTML = tasksToShow.length ? tasksToShow.slice(0, prodLimit).map((t) => {
+                const i = t.originalIndex;
                 const sTime = t.startTime ? new Date(t.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
                 const eTime = t.endTime ? new Date(t.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
                 const duration = calculateDuration(t.startTime, t.endTime);
@@ -2036,7 +2076,16 @@
                         </button>
                     </div>
                 </li>
-            `}).join('') : '<div class="empty-state">No counters active. Add a task to begin.</div>';
+            `}).join('') : `<div class="empty-state">${activeProductivitySubTab === 'active' ? 'No active sessions running.' : 'No completed history found.'}</div>`;
+
+            if (activeProductivitySubTab === 'history' && tasksToShow.length > prodLimit) {
+                taskList.innerHTML += `
+                    <div style="padding: 15px; text-align: center;">
+                        <button onclick="loadMore('prodHistory')" style="width: 100%; background: var(--bg); color: var(--primary); border: 1px solid var(--border); padding: 10px; font-size: 0.85rem; font-weight: 600;">
+                            Load More (${tasksToShow.length - prodLimit} remaining)
+                        </button>
+                    </div>`;
+            }
 
             // Update Progress
             const completedCount = state.tasks.filter(t => t.completed).length;
