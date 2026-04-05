@@ -37,7 +37,47 @@
         }
 
         @media (max-width: 768px) {
-            .container { padding: 10px; }
+            .container { padding: 10px; width: 100%; box-sizing: border-box; }
+            .user-info { flex-direction: column; text-align: center; gap: 10px; }
+            .tab-group { flex-wrap: wrap; }
+            .tab-group button { font-size: 0.8rem; padding: 10px 5px; }
+            
+            /* Table to Card conversion */
+            .table-header { display: none; }
+            li { 
+                flex-direction: column; 
+                align-items: flex-start; 
+                padding: 16px; 
+                gap: 8px;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                margin-bottom: 10px;
+            }
+            .col-id, .col-role, .col-date, .col-shift, .col-info, .col-status, .col-ts { 
+                width: 100% !important; 
+                text-align: left !important; 
+                border: none !important;
+                padding: 0 !important;
+            }
+            .col-ts { display: inline-block; width: auto !important; margin-right: 15px; }
+            .col-ts::before { content: attr(title) ": "; font-weight: bold; font-size: 0.6rem; display: block; color: var(--text-light); }
+
+            /* Mobile Actions: Always show or make accessible */
+            .hover-actions {
+                position: static;
+                transform: none !important;
+                opacity: 1;
+                pointer-events: auto;
+                flex-direction: row;
+                flex-wrap: wrap;
+                width: 100%;
+                margin-top: 10px;
+                box-shadow: none;
+                padding: 0;
+                border: none;
+                background: transparent;
+            }
+            .hover-actions button { flex: 1; min-width: 100px; }
         }
 
         header {
@@ -733,10 +773,10 @@
                             ${m.status}
                         </span>
                     </div>
-                    <div class="col-ts">${m.timeIn || '--'}</div>
-                    <div class="col-ts">${m.breakOut || '--'}</div>
-                    <div class="col-ts">${m.breakIn || '--'}</div>
-                    <div class="col-ts">${m.timeOut || '--'}</div>
+                    <div class="col-ts" title="In">${m.timeIn || '--'}</div>
+                    <div class="col-ts" title="B-Out">${m.breakOut || '--'}</div>
+                    <div class="col-ts" title="B-In">${m.breakIn || '--'}</div>
+                    <div class="col-ts" title="Out">${m.timeOut || '--'}</div>
                     
                     <!-- Hover Actions -->
                     <div class="hover-actions">
@@ -800,10 +840,10 @@
                                 ${m.status}
                             </span>
                         </div>
-                        <div class="col-ts">${m.timeIn}</div>
-                        <div class="col-ts">${m.breakOut}</div>
-                        <div class="col-ts">${m.breakIn}</div>
-                        <div class="col-ts">${m.timeOut}</div>
+                        <div class="col-ts" title="In">${m.timeIn}</div>
+                        <div class="col-ts" title="B-Out">${m.breakOut}</div>
+                        <div class="col-ts" title="B-In">${m.breakIn}</div>
+                        <div class="col-ts" title="Out">${m.timeOut}</div>
                         
                         <!-- Hover Actions -->
                         <div class="hover-actions">
