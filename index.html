@@ -444,7 +444,11 @@
         @media (max-width: 768px) {
             body { padding: 0; padding-bottom: 80px; }
             .container { padding: 15px; width: 100%; box-sizing: border-box; }
-            .tab-group { display: none !important; }
+            
+            /* Hide only the main Attendance/Productivity toggle on mobile as it's in the footer/sidebar */
+            #homeView > .tab-group { display: none !important; }
+            /* Make sub-tab buttons more compact for mobile screens */
+            .tab-group button { font-size: 0.75rem !important; padding: 8px 4px; }
             #mobileMenuBtn { display: flex; }
             
             header { margin: 0; padding: 15px 0; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1050; }
