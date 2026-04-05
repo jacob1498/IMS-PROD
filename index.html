@@ -615,6 +615,27 @@
                         <span class="material-symbols-outlined" style="font-size: 20px;">person_add</span> User Master
                     </button>
                 </div>
+
+                <div id="side-summaryMenu" class="sidebar-nav-group hidden">
+                    <small>Dashboard Overview</small>
+                    <button onclick="toggleSidebar()" class="active">
+                        <span class="material-symbols-outlined">insights</span> Key Metrics
+                    </button>
+                </div>
+
+                <div id="side-reportsMenu" class="sidebar-nav-group hidden">
+                    <small>Reports & Analytics</small>
+                    <button onclick="toggleSidebar()">
+                        <span class="material-symbols-outlined">description</span> Export PDF
+                    </button>
+                </div>
+
+                <div id="side-scheduleMenu" class="sidebar-nav-group hidden">
+                    <small>Schedule Management</small>
+                    <button onclick="toggleSidebar()">
+                        <span class="material-symbols-outlined">event</span> View Roster
+                    </button>
+                </div>
             </div>
 
             <div class="sidebar-footer">
@@ -995,9 +1016,17 @@
             document.querySelectorAll('.side-nav-item').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.tab === tab);
             });
-            if (document.getElementById('side-homeSubMenu')) {
-                document.getElementById('side-homeSubMenu').classList.toggle('hidden', tab !== 'home');
-            }
+
+            // Sync sidebar sub-menu visibility for all tabs
+            const sideHome = document.getElementById('side-homeSubMenu');
+            const sideSum = document.getElementById('side-summaryMenu');
+            const sideRep = document.getElementById('side-reportsMenu');
+            const sideSch = document.getElementById('side-scheduleMenu');
+
+            if (sideHome) sideHome.classList.toggle('hidden', tab !== 'home');
+            if (sideSum) sideSum.classList.toggle('hidden', tab !== 'summary');
+            if (sideRep) sideRep.classList.toggle('hidden', tab !== 'reports');
+            if (sideSch) sideSch.classList.toggle('hidden', tab !== 'schedule');
 
             // Sync sidebar attendance views sub-menu visibility
             const sideAttSub = document.getElementById('side-attendanceSubMenu');
