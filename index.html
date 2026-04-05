@@ -1189,8 +1189,8 @@
                 document.getElementById('globalSearchInput').focus();
             } else {
                 document.getElementById('globalSearchInput').value = '';
-                render();
             }
+            render();
         }
 
         function stopScanner() {
@@ -1379,22 +1379,28 @@
             const progressBar = document.getElementById('progress-bar');
 
             // Global search logic
-            const globalSearch = document.getElementById('globalSearchInput') ? 
-                document.getElementById('globalSearchInput').value.toLowerCase() : '';
+            const searchInput = document.getElementById('globalSearchInput');
+            const globalSearch = searchInput ? searchInput.value.toLowerCase() : '';
+            const searchOverlay = document.getElementById('globalSearchOverlay');
 
             // Clean UI when searching
-            const isSearching = globalSearch.length > 0;
+            const isSearching = searchOverlay && searchOverlay.classList.contains('show');
             const checkinUI = document.querySelector('#checkinSubSection .scan-area');
             const checkinH2 = document.querySelector('#checkinSubSection h2');
             const historyUI = document.querySelector('#historySubSection .input-group');
             const historyH2 = document.querySelector('#historySubSection h2');
             const registerUI = document.querySelector('#registerSubSection > div');
+            const footerNav = document.querySelector('.footer-nav');
+            const mainTabGroups = document.querySelectorAll('.tab-group');
 
             if (checkinUI) checkinUI.style.display = isSearching ? 'none' : 'block';
             if (checkinH2) checkinH2.style.display = isSearching ? 'none' : 'block';
             if (historyUI) historyUI.style.display = isSearching ? 'none' : 'flex';
             if (historyH2) historyH2.style.display = isSearching ? 'none' : 'block';
             if (registerUI) registerUI.style.display = isSearching ? 'none' : 'flex';
+            if (footerNav) footerNav.style.visibility = (isSearching && window.innerWidth <= 768) ? 'hidden' : 'visible';
+            
+            mainTabGroups.forEach(tg => tg.style.display = isSearching ? 'none' : '');
 
             const historyFromDate = state.historyFilterFromDate;
             const historyToDate = state.historyFilterToDate;
