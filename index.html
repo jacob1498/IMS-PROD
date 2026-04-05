@@ -6,6 +6,8 @@
     <title>WorkFlow | Attendance & Productivity</title>
     <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <style>
         :root {
             --primary: #6366f1;
@@ -29,7 +31,7 @@
         }
 
         .container {
-            max-width: 600px;
+            max-width: 950px;
             margin: 0 auto;
             display: block;
         }
@@ -40,7 +42,14 @@
 
         header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .live-clock {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 5px;
         }
 
         /* Auth Styles */
@@ -51,6 +60,11 @@
             background: var(--card);
             border-radius: 12px;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .material-symbols-outlined {
+            font-size: 20px;
+            pointer-events: none;
         }
 
         .tab-group {
@@ -120,6 +134,10 @@
             cursor: pointer;
             transition: all 0.2s;
             font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
         button:hover { opacity: 0.9; transform: translateY(-1px); }
@@ -129,11 +147,63 @@
 
         li {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             padding: 10px;
             border-bottom: 1px solid var(--bg);
             transition: background 0.2s;
+            position: relative;
+        }
+        
+        /* Table-like columns */
+        .table-header {
+            display: flex;
+            padding: 10px;
+            background: var(--bg);
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-light);
+            margin-bottom: 5px;
+        }
+        .col-id { width: 60px; font-size: 0.75rem; color: var(--text-light); }
+        .col-role { width: 95px; font-size: 0.7rem; color: var(--text-light); }
+        .col-date { width: 85px; font-size: 0.7rem; color: var(--text-light); }
+        .col-shift { width: 50px; font-size: 0.7rem; text-align: center; font-weight: 600; }
+        .col-info { flex: 1; min-width: 150px; }
+        .col-status { width: 85px; text-align: center; }
+        .col-ts { width: 60px; font-size: 0.65rem; text-align: center; color: var(--text-light); border-left: 1px solid var(--bg); }
+
+        /* Hover Actions Overlay */
+        .hover-actions {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%) scale(0.9);
+            background: var(--card);
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 6px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            z-index: 10;
+        }
+
+        li:hover .hover-actions {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(-50%) scale(1);
+        }
+
+        .hover-actions button {
+            padding: 6px 10px;
+            font-size: 0.7rem;
         }
         
         li:hover { background: #f8fafc; }
@@ -147,6 +217,8 @@
         }
 
         .present { background: #dcfce7; color: #166534; }
+        .on-break { background: #fef9c3; color: #854d0e; }
+        .away { background: #fee2e2; color: #991b1b; }
 
         .progress-container {
             height: 8px;
@@ -166,6 +238,29 @@
         .task-done { text-decoration: line-through; color: #94a3b8; }
         
         .empty-state { text-align: center; color: var(--text-light); padding: 20px; font-style: italic; font-size: 0.9rem; }
+
+        /* Enhanced Scan & Search Visuals */
+        .scan-area {
+            background: #f5f3ff;
+            border: 2px solid var(--primary);
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+        }
+        .scan-area small {
+            font-weight: 700;
+            color: var(--primary-dark) !important;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .search-area {
+            background: var(--bg);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -174,8 +269,14 @@
     <div id="authView" class="auth-container">
         <h2 id="authTitle" style="border:none; text-align:center">Welcome Back</h2>
         <div class="tab-group">
-            <button id="loginTab" class="active" onclick="toggleAuthMode('login')">Login</button>
-            <button id="signupTab" onclick="toggleAuthMode('signup')">Sign Up</button>
+            <button id="loginTab" class="active" onclick="toggleAuthMode('login')">
+                <span class="material-symbols-outlined">login</span>
+                Login
+            </button>
+            <button id="signupTab" onclick="toggleAuthMode('signup')">
+                <span class="material-symbols-outlined">person_add</span>
+                Sign Up
+            </button>
         </div>
         <div class="input-group" style="flex-direction: column;">
             <input type="email" id="email" placeholder="Email address">
@@ -189,27 +290,112 @@
     <div id="dashboardView" class="hidden">
         <div class="user-info container">
             <span id="userDisplay"></span>
-            <button onclick="handleSignOut()" style="background:var(--danger)">Sign Out</button>
+            <button onclick="handleSignOut()" style="background:var(--danger)">
+                <span class="material-symbols-outlined">logout</span>
+                Sign Out
+            </button>
         </div>
 
         <header>
+            <div id="realtimeClock" class="live-clock"></div>
             <h1>Team Dashboard</h1>
         </header>
 
         <div class="container">
             <div class="tab-group">
-                <button id="attendanceTabBtn" class="active" onclick="switchDashboardTab('attendance')">Attendance</button>
-                <button id="productivityTabBtn" onclick="switchDashboardTab('productivity')">Productivity</button>
+                <button id="attendanceTabBtn" class="active" onclick="switchDashboardTab('attendance')">
+                    <span class="material-symbols-outlined">assignment_ind</span>
+                    Attendance
+                </button>
+                <button id="productivityTabBtn" onclick="switchDashboardTab('productivity')">
+                    <span class="material-symbols-outlined">trending_up</span>
+                    Productivity
+                </button>
             </div>
 
             <!-- Attendance Section -->
             <div id="attendanceSection" class="card">
-                <h2>Attendance</h2>
-                <div class="input-group">
-                    <input type="text" id="memberInput" placeholder="Enter name..." onkeyup="if(event.key==='Enter') addMember()">
-                    <button onclick="addMember()">Add</button>
+                <div class="tab-group" style="margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                    <button id="checkinSubTabBtn" class="active" onclick="switchAttendanceSubTab('checkin')" style="padding: 5px 10px; font-size: 0.8rem;">
+                        <span class="material-symbols-outlined" style="font-size:18px">how_to_reg</span>
+                        Check-in
+                    </button>
+                    <button id="historySubTabBtn" onclick="switchAttendanceSubTab('history')" style="padding: 5px 10px; font-size: 0.8rem;">
+                        <span class="material-symbols-outlined" style="font-size:18px">history</span>
+                        History
+                    </button>
+                    <button id="registerSubTabBtn" onclick="switchAttendanceSubTab('register')" style="padding: 5px 10px; font-size: 0.8rem;">
+                        <span class="material-symbols-outlined" style="font-size:18px">person_add</span>
+                        Register
+                    </button>
                 </div>
-                <ul id="attendanceList"></ul>
+
+                <div id="checkinSubSection">
+                    <h2>Attendance Check-in</h2>
+                    <div class="scan-area">
+                        <small style="color:var(--text-light); margin-bottom: 8px; display: block;">Scan / Quick Check-in</small>
+                        <div style="display: flex; gap: 10px; align-items: stretch;">
+                            <input type="text" id="scanInput" placeholder="READY TO SCAN ID..." onkeyup="if(event.key==='Enter') scanAttendance()" style="background: white; font-weight: bold; border-color: var(--primary); margin-bottom: 0; flex: 1;">
+                            <div style="display: flex; gap: 6px;">
+                                <button onclick="quickAction('Present')" title="Quick Time In" style="background: var(--success); width: 45px; padding: 0;">
+                                    <span class="material-symbols-outlined">login</span>
+                                </button>
+                                <button onclick="quickAction('On Break')" title="Quick Break" style="background: #eab308; width: 45px; padding: 0;">
+                                    <span class="material-symbols-outlined">coffee</span>
+                                </button>
+                                <button onclick="quickAction('Away')" title="Quick Time Out" style="background: var(--danger); width: 45px; padding: 0;">
+                                    <span class="material-symbols-outlined">logout</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="search-area">
+                        <input type="text" id="checkinSearchInput" placeholder="🔍 Filter list by name or ID..." oninput="render()" style="background: transparent; border: none; padding: 4px 0;">
+                    </div>
+                    <ul id="attendanceList"></ul>
+                </div>
+
+                <div id="historySubSection" class="hidden">
+                    <h2>Checked-out History</h2>
+                    <div class="input-group" style="margin-bottom: 15px; flex-wrap: wrap;">
+                        <small style="color:var(--text-light); margin-bottom: 5px; width: 100%;">Filter by Date Range:</small>
+                        <input type="date" id="historyFromDate" onchange="updateHistoryFilterDate('from', this.value)" style="flex: 1; min-width: 120px;">
+                        <input type="date" id="historyToDate" onchange="updateHistoryFilterDate('to', this.value)" style="flex: 1; min-width: 120px;">
+                        <button onclick="clearHistoryDateFilter()" style="background: #64748b; padding: 8px 12px;">
+                            <span class="material-symbols-outlined" style="font-size:18px">close</span> Clear
+                        </button>
+                    </div>
+                    <div class="search-area">
+                        <input type="text" id="historySearchInput" placeholder="🔍 Filter history by name or ID..." oninput="render()" style="background: transparent; border: none; padding: 4px 0;">
+                    </div>
+                    <ul id="historyList"></ul>
+                </div>
+
+                <div id="registerSubSection" class="hidden">
+                    <h2>Member Registration</h2>
+                    <div class="input-group" style="flex-direction: column; margin-bottom: 20px;">
+                        <small style="color:var(--text-light); margin-bottom: 5px;">Register New Member</small>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <input type="text" id="memberIdInput" placeholder="ID (e.g. 001)" style="flex: 0.5; min-width: 80px;">
+                            <input type="text" id="memberNameInput" placeholder="Name" style="flex: 1; min-width: 150px;">
+                            <select id="memberRoleInput" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); outline: none; background: white;">
+                                <option value="" disabled selected>Select Role</option>
+                                <option value="Direct Counter">Direct Counter</option>
+                                <option value="Team leader">Team leader</option>
+                                <option value="Zone Leader">Zone Leader</option>
+                                <option value="Back up">Back up</option>
+                            </select>
+                            <button onclick="addMember()" style="padding: 8px 12px;">
+                                <span class="material-symbols-outlined">add_circle</span>
+                                Add
+                            </button>
+                        </div>
+                    </div>
+                    <div class="search-area">
+                        <input type="text" id="registerSearchInput" placeholder="🔍 Filter members by name or ID..." oninput="render()" style="background: transparent; border: none; padding: 4px 0;">
+                    </div>
+                    <ul id="registerList"></ul>
+                </div>
             </div>
 
             <!-- Productivity Section -->
@@ -220,7 +406,10 @@
                 </div>
                 <div class="input-group">
                     <input type="text" id="taskInput" placeholder="New task..." onkeyup="if(event.key==='Enter') addTask()">
-                    <button onclick="addTask()">Add Task</button>
+                    <button onclick="addTask()">
+                        <span class="material-symbols-outlined">add_task</span>
+                        Add Task
+                    </button>
                 </div>
                 <ul id="taskList"></ul>
             </div>
@@ -245,6 +434,8 @@
         // Data State
         let state = JSON.parse(localStorage.getItem('trackerData')) || {
             members: [],
+            historyFilterFromDate: '',
+            historyFilterToDate: '',
             tasks: []
         };
 
@@ -283,10 +474,21 @@
         }
 
         function switchDashboardTab(tab) {
-            document.getElementById('attendanceSection').classList.toggle('hidden', tab !== 'attendance');
-            document.getElementById('productivitySection').classList.toggle('hidden', tab !== 'productivity');
+            const attSection = document.getElementById('attendanceSection');
+            const prodSection = document.getElementById('productivitySection');
+            attSection.classList.toggle('hidden', tab !== 'attendance');
+            prodSection.classList.toggle('hidden', tab !== 'productivity');
             document.getElementById('attendanceTabBtn').classList.toggle('active', tab === 'attendance');
             document.getElementById('productivityTabBtn').classList.toggle('active', tab === 'productivity');
+        }
+
+        function switchAttendanceSubTab(tab) {
+            document.getElementById('checkinSubSection').classList.toggle('hidden', tab !== 'checkin');
+            document.getElementById('historySubSection').classList.toggle('hidden', tab !== 'history');
+            document.getElementById('registerSubSection').classList.toggle('hidden', tab !== 'register');
+            document.getElementById('checkinSubTabBtn').classList.toggle('active', tab === 'checkin');
+            document.getElementById('historySubTabBtn').classList.toggle('active', tab === 'history');
+            document.getElementById('registerSubTabBtn').classList.toggle('active', tab === 'register');
         }
 
         // Monitor Auth State
@@ -316,22 +518,144 @@
             render();
         }
 
+        function updateHistoryFilterDate(type, value) {
+            if (type === 'from') {
+                state.historyFilterFromDate = value;
+            } else if (type === 'to') {
+                state.historyFilterToDate = value;
+            }
+            saveData(); // Re-render with new filter
+        }
+
+        function clearHistoryDateFilter() {
+            state.historyFilterFromDate = '';
+            state.historyFilterToDate = '';
+            document.getElementById('historyFromDate').value = '';
+            document.getElementById('historyToDate').value = '';
+            saveData(); // Re-render to clear filter
+        }
+
+
         // Attendance Logic
         function addMember() {
-            const input = document.getElementById('memberInput');
-            if (!input.value) return;
+            const idInput = document.getElementById('memberIdInput');
+            const nameInput = document.getElementById('memberNameInput');
+            const roleInput = document.getElementById('memberRoleInput');
+            
+            if (!idInput.value || !nameInput.value || !roleInput.value) return alert("Please fill all registration fields!");
+
+            // Prevent duplicate IDs
+            if (state.members.some(m => m.userId === idInput.value)) {
+                alert("This User ID is already registered!");
+                return;
+            }
+
             state.members.push({
-                name: input.value,
-                present: false,
-                lastSeen: '--'
+                userId: idInput.value,
+                name: nameInput.value,
+                role: roleInput.value,
+                status: 'Away',
+                date: '--',
+                shift: '--',
+                timeIn: '--',
+                breakOut: '--',
+                breakIn: '--',
+                timeOut: '--'
             });
-            input.value = '';
+
+            idInput.value = '';
+            nameInput.value = '';
+            roleInput.value = '';
             saveData();
         }
 
-        function toggleAttendance(index) {
-            state.members[index].present = !state.members[index].present;
-            state.members[index].lastSeen = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        function scanAttendance() {
+            const scanInput = document.getElementById('scanInput');
+            const userId = scanInput.value.trim();
+            const index = state.members.findIndex(m => m.userId === userId);
+            
+            if (index !== -1) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const hour = now.getHours();
+                
+                // Shift Logic
+                let shift = '3rd'; // Default 10pm-6am
+                if (hour >= 6 && hour < 14) shift = '1st';
+                else if (hour >= 14 && hour < 22) shift = '2nd';
+
+                // Scanning explicitly marks as Present
+                state.members[index].status = 'Present';
+                state.members[index].timeIn = timeStr;
+                state.members[index].date = now.toLocaleDateString();
+                state.members[index].shift = shift;
+
+                saveData();
+                
+                const originalPlaceholder = scanInput.placeholder;
+                scanInput.value = '';
+                scanInput.placeholder = `Checked in: ${state.members[index].name}`;
+                setTimeout(() => scanInput.placeholder = originalPlaceholder, 2000);
+            } else if (userId) {
+                alert("User ID not found!");
+            }
+        }
+
+        function quickAction(status) {
+            const scanInput = document.getElementById('scanInput');
+            const userId = scanInput.value.trim();
+            if (!userId) return;
+
+            const index = state.members.findIndex(m => m.userId === userId);
+            if (index === -1) return alert("User ID not found!");
+
+            if (status === 'Present') {
+                // If member is Away, use full scan logic (Shift/Date tracking)
+                if (state.members[index].status === 'Away') {
+                    scanAttendance();
+                    return;
+                } else {
+                    // Otherwise, treat as Break In
+                    updateStatus(index, 'Present');
+                }
+            } else {
+                updateStatus(index, status);
+            }
+            
+            // Visual feedback consistent with scanAttendance
+            const originalPlaceholder = scanInput.placeholder;
+            scanInput.value = '';
+            const statusLabel = status === 'On Break' ? 'On Break' : (status === 'Away' ? 'Timed Out' : 'Back In');
+            scanInput.placeholder = `${statusLabel}: ${state.members[index].name}`;
+            setTimeout(() => scanInput.placeholder = originalPlaceholder, 2000);
+        }
+
+        function updateStatus(index, newStatus) {
+            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            state.members[index].status = newStatus;
+            
+            if (newStatus === 'On Break') state.members[index].breakOut = now;
+            if (newStatus === 'Present') state.members[index].breakIn = now;
+            if (newStatus === 'Away') state.members[index].timeOut = now;
+            
+            saveData();
+        }
+
+        function resetAttendance(index) {
+            if (!confirm("Undo check-in for this member? This will clear all timestamps for this session.")) return;
+            state.members[index].status = 'Away';
+            state.members[index].date = '--';
+            state.members[index].shift = '--';
+            state.members[index].timeIn = '--';
+            state.members[index].breakOut = '--';
+            state.members[index].breakIn = '--';
+            state.members[index].timeOut = '--';
+            saveData();
+        }
+
+        function deleteMember(index) {
+            if (!confirm("Remove this member from the User Master?")) return;
+            state.members.splice(index, 1);
             saveData();
         }
 
@@ -360,20 +684,170 @@
         // Render UI
         function render() {
             const attendanceList = document.getElementById('attendanceList');
+            const historyList = document.getElementById('historyList');
+            const registerList = document.getElementById('registerList');
             const taskList = document.getElementById('taskList');
             const progressBar = document.getElementById('progress-bar');
 
-            // Render Attendance
-            attendanceList.innerHTML = state.members.length ? state.members.map((m, i) => `
+            const checkinSearch = document.getElementById('checkinSearchInput') ? 
+                document.getElementById('checkinSearchInput').value.toLowerCase() : '';
+            const historySearch = document.getElementById('historySearchInput') ? 
+                document.getElementById('historySearchInput').value.toLowerCase() : '';
+            const historyFromDate = state.historyFilterFromDate;
+            const historyToDate = state.historyFilterToDate;
+            const registerSearch = document.getElementById('registerSearchInput') ? 
+                document.getElementById('registerSearchInput').value.toLowerCase() : '';
+
+            // Render Attendance List (Check-in view)
+            const checkedInMembers = state.members
+                .map((m, i) => ({ ...m, index: i }))
+                .filter(m => m.status !== 'Away' && 
+                    (m.name.toLowerCase().includes(checkinSearch) || m.userId.toLowerCase().includes(checkinSearch))
+                );
+
+            const checkinHeader = `
+                <div class="table-header">
+                    <div class="col-id">User ID</div>
+                    <div class="col-role">Role</div>
+                    <div class="col-date">Date</div>
+                    <div class="col-shift">Shift</div>
+                    <div class="col-info">Member Name</div>
+                    <div class="col-status">Status</div>
+                    <div class="col-ts">In</div>
+                    <div class="col-ts">B-Out</div>
+                    <div class="col-ts">B-In</div>
+                    <div class="col-ts">Out</div>
+                </div>`;
+
+            attendanceList.innerHTML = checkedInMembers.length ? checkinHeader + checkedInMembers.map((m) => `
                 <li>
-                    <span>${m.name} <small style="color:#64748b; margin-left:8px">${m.lastSeen}</small></span>
-                    <button 
-                        class="status-badge ${m.present ? 'present' : ''}" 
-                        onclick="toggleAttendance(${i})">
-                        ${m.present ? 'Present' : 'Away'}
-                    </button>
+                    <div class="col-id">${m.userId}</div>
+                    <div class="col-role">${m.role || '--'}</div>
+                    <div class="col-date">${m.date}</div>
+                    <div class="col-shift">${m.shift}</div>
+                    <div class="col-info">
+                        <div style="font-weight:600; font-size:0.9rem">${m.name}</div>
+                    </div>
+                    <div class="col-status">
+                        <span class="status-badge ${m.status === 'Present' ? 'present' : 'on-break'}">
+                            ${m.status}
+                        </span>
+                    </div>
+                    <div class="col-ts">${m.timeIn || '--'}</div>
+                    <div class="col-ts">${m.breakOut || '--'}</div>
+                    <div class="col-ts">${m.breakIn || '--'}</div>
+                    <div class="col-ts">${m.timeOut || '--'}</div>
+                    
+                    <!-- Hover Actions -->
+                    <div class="hover-actions">
+                        ${m.status === 'Present' ? 
+                            `<button onclick="updateStatus(${m.index}, 'On Break')" style="background:#eab308">
+                                <span class="material-symbols-outlined" style="font-size:16px">coffee</span>
+                                Break Out
+                             </button>` : 
+                            `<button onclick="updateStatus(${m.index}, 'Present')" style="background:var(--success)">
+                                <span class="material-symbols-outlined" style="font-size:16px">work</span>
+                                Break In
+                             </button>`
+                        }
+                        <button onclick="updateStatus(${m.index}, 'Away')" style="background:var(--danger)">
+                            <span class="material-symbols-outlined" style="font-size:16px">exit_to_app</span>
+                            Time Out
+                        </button>
+                        <button onclick="resetAttendance(${m.index})" style="background:#334155">
+                            <span class="material-symbols-outlined" style="font-size:16px">restart_alt</span>
+                            Reset
+                        </button>
+                    </div>
                 </li>
-            `).join('') : '<div class="empty-state">No members added yet.</div>';
+            `).join('') : `<div class="empty-state">${checkinSearch ? 'No matching members found.' : 'No one checked in yet. Scan ID to start.'}</div>`;
+
+            // Render History List (Checked-out view)
+            const checkedOutMembers = state.members
+                .map((m, i) => ({ ...m, index: i }))
+                .filter(m => {
+                    const matchesSearch = m.name.toLowerCase().includes(historySearch) || m.userId.toLowerCase().includes(historySearch);
+                    const isAwayAndTimedIn = m.status === 'Away' && m.timeIn !== '--';
+
+                    if (!isAwayAndTimedIn) return false;
+
+                    // Date filtering
+                    if (historyFromDate && m.date) {
+                        const memberDate = new Date(m.date);
+                        const fromDate = new Date(historyFromDate);
+                        if (memberDate < fromDate) return false;
+                    }
+                    if (historyToDate && m.date) {
+                        const memberDate = new Date(m.date);
+                        const toDate = new Date(historyToDate);
+                        if (memberDate > toDate) return false;
+                    }
+                    return matchesSearch;
+                });
+
+            if (historyList) {
+                historyList.innerHTML = checkedOutMembers.length ? checkinHeader + checkedOutMembers.map((m) => `
+                    <li>
+                        <div class="col-id">${m.userId}</div>
+                        <div class="col-role">${m.role || '--'}</div>
+                        <div class="col-date">${m.date}</div>
+                        <div class="col-shift">${m.shift}</div>
+                        <div class="col-info">
+                            <div style="font-weight:600; font-size:0.9rem">${m.name}</div>
+                        </div>
+                        <div class="col-status">
+                            <span class="status-badge away">
+                                ${m.status}
+                            </span>
+                        </div>
+                        <div class="col-ts">${m.timeIn}</div>
+                        <div class="col-ts">${m.breakOut}</div>
+                        <div class="col-ts">${m.breakIn}</div>
+                        <div class="col-ts">${m.timeOut}</div>
+                        
+                        <!-- Hover Actions -->
+                        <div class="hover-actions">
+                            <button onclick="updateStatus(${m.index}, 'Present')" style="background:var(--primary)">
+                                <span class="material-symbols-outlined" style="font-size:16px">refresh</span>
+                                Re-check In
+                            </button>
+                        </div>
+                    </li>
+                `).join('') : `<div class="empty-state">${historySearch ? 'No matching records found.' : 'No check-out records found for today.'}</div>`;
+            }
+
+            // Render Register List (Management view)
+            if (registerList) {
+                const registerHeader = `
+                    <div class="table-header">
+                        <div class="col-id">User ID</div>
+                        <div class="col-role">Role</div>
+                        <div class="col-info">Full Name</div>
+                        <div style="width: 80px; text-align: right;">Action</div>
+                    </div>`;
+
+                const filteredRegister = state.members
+                    .map((m, i) => ({ ...m, index: i }))
+                    .filter(m => 
+                        (m.name.toLowerCase().includes(registerSearch) || m.userId.toLowerCase().includes(registerSearch))
+                    );
+
+                registerList.innerHTML = filteredRegister.length ? registerHeader + filteredRegister.map((m) => `
+                    <li>
+                        <div class="col-id">${m.userId}</div>
+                        <div class="col-role">${m.role || '--'}</div>
+                        <div class="col-info">
+                            <div style="font-weight:600; font-size:0.9rem">${m.name}</div>
+                        </div>
+                        <div style="width: 80px; text-align: right;">
+                            <button onclick="deleteMember(${m.index})" style="background:none; color:var(--danger); padding:0; font-size:0.8rem">
+                                <span class="material-symbols-outlined" style="font-size:18px">delete</span>
+                                Remove
+                            </button>
+                        </div>
+                    </li>
+                `).join('') : `<div class="empty-state">${registerSearch ? 'No matching members found.' : 'No members to manage.'}</div>`;
+            }
 
             // Render Tasks
             taskList.innerHTML = state.tasks.length ? state.tasks.map((t, i) => `
@@ -381,7 +855,9 @@
                     <span class="${t.completed ? 'task-done' : ''}" onclick="toggleTask(${i})" style="cursor:pointer">
                         ${t.completed ? '✓ ' : '○ '} ${t.text}
                     </span>
-                    <button onclick="deleteTask(${i})" style="background:none; color:var(--danger); padding:0">✕</button>
+                    <button onclick="deleteTask(${i})" style="background:none; color:var(--danger); padding:0">
+                        <span class="material-symbols-outlined" style="font-size:18px">delete</span>
+                    </button>
                 </li>
             `).join('') : '<div class="empty-state">No tasks to track yet.</div>';
 
@@ -389,8 +865,23 @@
             const completedCount = state.tasks.filter(t => t.completed).length;
             const totalTasks = state.tasks.length;
             const progress = totalTasks === 0 ? 0 : (completedCount / totalTasks) * 100;
-            progressBar.style.width = progress + '%';
+            if (progressBar) progressBar.style.width = progress + '%';
         }
+
+        function updateClock() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const clockEl = document.getElementById('realtimeClock');
+            if (clockEl) clockEl.textContent = `${dateStr} | ${timeStr}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Set initial date filter values if they exist in state
+        if (document.getElementById('historyFromDate')) document.getElementById('historyFromDate').value = state.historyFilterFromDate;
+        if (document.getElementById('historyToDate')) document.getElementById('historyToDate').value = state.historyFilterToDate;
+
 
         // Initial Load
         render();
