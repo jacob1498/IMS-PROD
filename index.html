@@ -666,8 +666,17 @@
         .schedule-row:nth-child(even) { background-color: #f8fafc !important; }
         
         @media (max-width: 768px) {
-            #scheduleSection .table-header > div { font-size: 0.6rem !important; padding: 8px 3px !important; }
-            .schedule-row > div { font-size: 0.65rem !important; padding: 6px 3px !important; }
+            #scheduleSection .table-header { display: flex !important; }
+            #scheduleSection .table-header > div { font-size: 0.55rem !important; padding: 8px 2px !important; }
+            .schedule-row { 
+                display: flex !important; 
+                grid-template-columns: none !important; 
+                grid-template-areas: none !important;
+                border-left: none !important; 
+                flex-direction: row !important;
+                box-shadow: none !important;
+            }
+            .schedule-row > div { font-size: 0.6rem !important; padding: 6px 2px !important; }
         }
     </style>
 </head>
