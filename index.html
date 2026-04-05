@@ -38,29 +38,52 @@
 
         @media (max-width: 768px) {
             .container { padding: 10px; width: 100%; box-sizing: border-box; }
-            .user-info { flex-direction: column; text-align: center; gap: 10px; }
-            .tab-group { flex-wrap: wrap; }
-            .tab-group button { font-size: 0.8rem; padding: 10px 5px; }
+            .user-info { flex-direction: column; text-align: center; gap: 10px; margin-top: 50px; }
+            .tab-group { display: none !important; }
+            #mobileMenuBtn { display: flex; }
             
-            /* Table to Card conversion */
+            /* Enhanced Table to Card conversion */
             .table-header { display: none; }
             li { 
                 flex-direction: column; 
                 align-items: flex-start; 
-                padding: 16px; 
-                gap: 8px;
+                padding: 18px; 
+                gap: 12px;
                 border: 1px solid var(--border);
-                border-radius: 8px;
-                margin-bottom: 10px;
+                border-radius: 12px;
+                margin-bottom: 16px;
+                background: var(--card);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             }
-            .col-id, .col-role, .col-date, .col-shift, .col-info, .col-status, .col-ts { 
+            
+            /* Meta-data row for ID, Role, Shift, Date */
+            .col-id, .col-role, .col-date, .col-shift { 
+                display: inline-flex !important;
                 width: 100% !important; 
-                text-align: left !important; 
-                border: none !important;
-                padding: 0 !important;
+                font-size: 0.7rem !important;
+                margin-right: 8px;
+                background: var(--bg);
+                padding: 2px 8px !important;
+                border-radius: 4px;
+                color: var(--text-light) !important;
             }
-            .col-ts { display: inline-block; width: auto !important; margin-right: 15px; }
-            .col-ts::before { content: attr(title) ": "; font-weight: bold; font-size: 0.6rem; display: block; color: var(--text-light); }
+
+            .col-info { width: 100% !important; font-size: 1.1rem; margin: 4px 0; }
+            .col-status { width: auto !important; margin-bottom: 8px; }
+            
+            /* Timestamps in a 2x2 grid */
+            .col-ts { 
+                width: 48% !important; 
+                display: inline-flex !important;
+                flex-direction: column;
+                border: none !important;
+                padding: 8px !important;
+                background: #f8fafc;
+                border-radius: 6px;
+                margin: 1% !important;
+                box-sizing: border-box;
+            }
+            .col-ts::before { content: attr(title); font-weight: 800; font-size: 0.55rem; text-transform: uppercase; color: var(--primary); margin-bottom: 2px; }
 
             /* Mobile Actions: Always show or make accessible */
             .hover-actions {
@@ -68,16 +91,22 @@
                 transform: none !important;
                 opacity: 1;
                 pointer-events: auto;
-                flex-direction: row;
+                flex-direction: column;
                 flex-wrap: wrap;
                 width: 100%;
-                margin-top: 10px;
+                margin-top: 8px;
                 box-shadow: none;
                 padding: 0;
                 border: none;
                 background: transparent;
+                gap: 8px;
             }
-            .hover-actions button { flex: 1; min-width: 100px; }
+            .hover-actions button { 
+                width: 100%; 
+                padding: 12px !important; 
+                font-size: 0.85rem !important;
+                justify-content: center;
+            }
         }
 
         header {
@@ -301,9 +330,98 @@
             border: 1px solid var(--border);
             margin-bottom: 15px;
         }
+
+        /* Sidebar Styles */
+        #mobileMenuBtn {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background: var(--primary);
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            box-shadow: var(--shadow);
+        }
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(2px);
+            z-index: 1100;
+            display: none;
+        }
+        .sidebar-overlay.show { display: block; }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100%;
+            background: var(--card);
+            z-index: 1200;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+        }
+        .sidebar.open { left: 0; }
+        .sidebar-nav-group { display: flex; flex-direction: column; gap: 8px; }
+        .sidebar-nav-group small {
+            text-transform: uppercase;
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: var(--text-light);
+            margin-bottom: 4px;
+            letter-spacing: 0.05em;
+        }
+        .sidebar button { justify-content: flex-start; padding: 12px; }
     </style>
 </head>
 <body>
+    <!-- Mobile Sidebar -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <nav id="sidebar" class="sidebar">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+            <h3 style="margin:0">Menu</h3>
+            <button onclick="toggleSidebar()" style="background:none; color:var(--text); padding:0">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="sidebar-nav-group">
+            <small>Main Navigation</small>
+            <button id="side-attendanceTabBtn" onclick="switchDashboardTab('attendance'); toggleSidebar();">
+                <span class="material-symbols-outlined">assignment_ind</span> Attendance
+            </button>
+            <button id="side-productivityTabBtn" onclick="switchDashboardTab('productivity'); toggleSidebar();">
+                <span class="material-symbols-outlined">trending_up</span> Productivity
+            </button>
+        </div>
+        <div id="side-attendanceSubMenu" class="sidebar-nav-group">
+            <small>Attendance Views</small>
+            <button id="side-checkinSubTabBtn" onclick="switchAttendanceSubTab('checkin'); toggleSidebar();">
+                <span class="material-symbols-outlined">how_to_reg</span> Check-in
+            </button>
+            <button id="side-historySubTabBtn" onclick="switchAttendanceSubTab('history'); toggleSidebar();">
+                <span class="material-symbols-outlined">history</span> History
+            </button>
+            <button id="side-registerSubTabBtn" onclick="switchAttendanceSubTab('register'); toggleSidebar();">
+                <span class="material-symbols-outlined">person_add</span> Register
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Toggle -->
+    <button id="mobileMenuBtn" onclick="toggleSidebar()">
+        <span class="material-symbols-outlined">menu</span>
+    </button>
 
     <!-- Auth Section -->
     <div id="authView" class="auth-container">
@@ -520,15 +638,38 @@
             prodSection.classList.toggle('hidden', tab !== 'productivity');
             document.getElementById('attendanceTabBtn').classList.toggle('active', tab === 'attendance');
             document.getElementById('productivityTabBtn').classList.toggle('active', tab === 'productivity');
+            
+            // Sync Sidebar
+            if (document.getElementById('side-attendanceTabBtn')) {
+                document.getElementById('side-attendanceTabBtn').classList.toggle('active', tab === 'attendance');
+                document.getElementById('side-productivityTabBtn').classList.toggle('active', tab === 'productivity');
+                document.getElementById('side-attendanceSubMenu').classList.toggle('hidden', tab !== 'attendance');
+            }
         }
 
         function switchAttendanceSubTab(tab) {
             document.getElementById('checkinSubSection').classList.toggle('hidden', tab !== 'checkin');
             document.getElementById('historySubSection').classList.toggle('hidden', tab !== 'history');
             document.getElementById('registerSubSection').classList.toggle('hidden', tab !== 'register');
+            
+            // Sync Desktop Tabs
             document.getElementById('checkinSubTabBtn').classList.toggle('active', tab === 'checkin');
             document.getElementById('historySubTabBtn').classList.toggle('active', tab === 'history');
             document.getElementById('registerSubTabBtn').classList.toggle('active', tab === 'register');
+
+            // Sync Sidebar Tabs
+            if (document.getElementById('side-checkinSubTabBtn')) {
+                document.getElementById('side-checkinSubTabBtn').classList.toggle('active', tab === 'checkin');
+                document.getElementById('side-historySubTabBtn').classList.toggle('active', tab === 'history');
+                document.getElementById('side-registerSubTabBtn').classList.toggle('active', tab === 'register');
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
         }
 
         // Monitor Auth State
