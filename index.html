@@ -578,22 +578,6 @@
             </div>
 
             <div class="sidebar-content">
-                <div class="sidebar-nav-group">
-                    <small>Application</small>
-                    <button onclick="switchFooterTab('home')" class="active side-nav-item" data-tab="home">
-                        <span class="material-symbols-outlined">home</span> Home
-                    </button>
-                    <button onclick="switchFooterTab('summary')" class="side-nav-item" data-tab="summary">
-                        <span class="material-symbols-outlined">dashboard</span> Dashboard
-                    </button>
-                    <button onclick="switchFooterTab('reports')" class="side-nav-item" data-tab="reports">
-                        <span class="material-symbols-outlined">analytics</span> Reports
-                    </button>
-                    <button onclick="switchFooterTab('schedule')" class="side-nav-item" data-tab="schedule">
-                        <span class="material-symbols-outlined">calendar_month</span> Schedule
-                    </button>
-                </div>
-
                 <div id="side-homeSubMenu" class="sidebar-nav-group">
                     <small>Home Views</small>
                     <button id="side-attendanceTabBtn" onclick="switchDashboardTab('attendance'); toggleSidebar();" class="active">
@@ -771,9 +755,7 @@
             </div>
         </div>
 
-        <footer class="container dashboard-footer">
-            <span id="userDisplay"></span>
-        </footer>
+        <footer class="container dashboard-footer"></footer>
 
         <!-- Scan Action Selection Modal -->
         <div id="scanActionModal" class="modal-overlay hidden" onclick="closeScanActionModal()">
@@ -1061,7 +1043,6 @@
             if (session) {
                 authView.classList.add('hidden');
                 dashboardView.classList.remove('hidden');
-                document.getElementById('userDisplay').innerText = `Logged in as: ${session.user.email}`;
                 render();
             } else {
                 authView.classList.remove('hidden');
@@ -1400,6 +1381,20 @@
             // Global search logic
             const globalSearch = document.getElementById('globalSearchInput') ? 
                 document.getElementById('globalSearchInput').value.toLowerCase() : '';
+
+            // Clean UI when searching
+            const isSearching = globalSearch.length > 0;
+            const checkinUI = document.querySelector('#checkinSubSection .scan-area');
+            const checkinH2 = document.querySelector('#checkinSubSection h2');
+            const historyUI = document.querySelector('#historySubSection .input-group');
+            const historyH2 = document.querySelector('#historySubSection h2');
+            const registerUI = document.querySelector('#registerSubSection > div');
+
+            if (checkinUI) checkinUI.style.display = isSearching ? 'none' : 'block';
+            if (checkinH2) checkinH2.style.display = isSearching ? 'none' : 'block';
+            if (historyUI) historyUI.style.display = isSearching ? 'none' : 'flex';
+            if (historyH2) historyH2.style.display = isSearching ? 'none' : 'block';
+            if (registerUI) registerUI.style.display = isSearching ? 'none' : 'flex';
 
             const historyFromDate = state.historyFilterFromDate;
             const historyToDate = state.historyFilterToDate;
