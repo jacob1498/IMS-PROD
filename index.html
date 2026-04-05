@@ -875,22 +875,22 @@
 
                 <!-- Cycle Count Performance Cards -->
                 <div id="cycleSummaryCards" class="hidden" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                    <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
+                    <div class="card" onclick="showCycleStatsList('active')" style="text-align: center; border-top: 4px solid var(--success); cursor: pointer;">
                         <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Active Counters</div>
                         <div id="sumCycleActive" style="font-size: 2.2rem; font-weight: 800; margin: 8px 0;">0</div>
                         <div style="font-size: 0.75rem; color: var(--text-light);">Currently Counting</div>
                     </div>
-                    <div class="card" style="text-align: center; border-top: 4px solid var(--text-light);">
+                    <div class="card" onclick="showCycleStatsList('inactive')" style="text-align: center; border-top: 4px solid var(--text-light); cursor: pointer;">
                         <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Inactive Counters</div>
                         <div id="sumCycleInactive" style="font-size: 2.2rem; font-weight: 800; margin: 8px 0;">0</div>
                         <div style="font-size: 0.75rem; color: var(--text-light);">No Active Session</div>
                     </div>
-                    <div class="card" style="text-align: center; border-top: 4px solid var(--danger);">
+                    <div class="card" onclick="showCycleStatsList('long')" style="text-align: center; border-top: 4px solid var(--danger); cursor: pointer;">
                         <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Long Sessions</div>
                         <div id="sumCycleLong" style="font-size: 2.2rem; font-weight: 800; margin: 8px 0;">0</div>
                         <div style="font-size: 0.75rem; color: var(--danger); font-weight: 600;">> 1 Hour Counting</div>
                     </div>
-                    <div class="card" style="text-align: center; border-top: 4px solid #eab308;">
+                    <div class="card" onclick="showCycleStatsList('break')" style="text-align: center; border-top: 4px solid #eab308; cursor: pointer;">
                         <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Counters on Break</div>
                         <div id="sumCycleBreak" style="font-size: 2.2rem; font-weight: 800; margin: 8px 0;">0</div>
                         <div style="font-size: 0.75rem; color: var(--text-light);">From Attendance</div>
@@ -1741,6 +1741,65 @@
             document.getElementById('detailsModal').classList.remove('hidden');
         }
 
+        function showCycleStatsList(type) {
+            const now = new Date();
+            const counterRoles = ['Direct Counter', 'Back up'];
+            const allCounters = state.members.filter(m => counterRoles.includes(m.role));
+            
+            const activeTasks = state.tasks.filter(t => !t.completed);
+            const activeCounterIds = new Set(activeTasks.map(t => t.userId));
+            
+            let list = [];
+            let titleText = "";
+
+            if (type === 'active') {
+                titleText = "Active Counters";
+                list = allCounters.filter(m => activeCounterIds.has(m.userId)).map(m => {
+                    const task = activeTasks.find(t => t.userId === m.userId);
+                    return { ...m, subText: `${task.location} (${task.binType}) • Running: ${calculateDuration(task.startTime)}` };
+                });
+            } else if (type === 'inactive') {
+                titleText = "Inactive Counters";
+                list = allCounters.filter(m => !activeCounterIds.has(m.userId)).map(m => ({
+                    ...m, subText: m.status === 'Away' ? 'Not Clocked In' : (m.status === 'On Break' ? 'On Break' : 'Available for Cycle Count')
+                }));
+            } else if (type === 'long') {
+                titleText = "Long Cycle Sessions (> 1Hr)";
+                list = allCounters.filter(m => {
+                    const t = activeTasks.find(task => task.userId === m.userId);
+                    if (!t || !t.startTime) return false;
+                    const diff = (now - new Date(t.startTime)) / 3600000;
+                    return diff > 1;
+                }).map(m => {
+                    const task = activeTasks.find(t => t.userId === m.userId);
+                    return { ...m, subText: `${task.location} (${task.binType}) • Session: ${calculateDuration(task.startTime)}`, isAlert: true };
+                });
+            } else if (type === 'break') {
+                titleText = "Designated Counters on Break";
+                list = allCounters.filter(m => m.status === 'On Break').map(m => ({ ...m, subText: `Break started at: ${m.breakOut}` }));
+            }
+
+            const titleEl = document.querySelector('#detailsModal h3');
+            if (titleEl) titleEl.innerText = titleText;
+
+            const body = document.getElementById('modalBody');
+            if (list.length === 0) {
+                body.innerHTML = '<div class="empty-state">No users matching this criteria.</div>';
+            } else {
+                body.innerHTML = '<div style="max-height: 380px; overflow-y: auto; padding-right:5px">' + list.map(m => `
+                    <div class="detail-row" style="flex-direction:column; align-items:flex-start; gap:4px; padding: 12px 0;">
+                        <div style="display:flex; justify-content:space-between; width:100%; align-items:center">
+                            <span style="font-weight:700; font-size:1.05rem">${m.name}</span>
+                            ${m.isAlert ? `<span style="color:var(--danger); font-weight:800; font-size:0.8rem; background:#fee2e2; padding: 2px 8px; border-radius:6px">OVER 1HR</span>` : ''}
+                        </div>
+                        <div style="font-size:0.75rem; color:var(--text-light); font-weight:500">${m.role} • ID: ${m.userId}</div>
+                        <div style="font-size:0.85rem; color:var(--primary); font-weight:600; margin-top:2px">${m.subText}</div>
+                    </div>
+                `).join('') + '</div>';
+            }
+            document.getElementById('detailsModal').classList.remove('hidden');
+        }
+
         function deleteMember(index) {
             if (!confirm("Remove this member from the User Master?")) return;
             state.members.splice(index, 1);
@@ -2027,12 +2086,27 @@
 
             // Render Global Search Results (Moved to end to ensure all filtered lists are defined)
             if (isSearching && globalSearch !== '') {
+                const taskMatches = state.tasks
+                    .map((t, i) => ({ ...t, index: i }))
+                    .filter(t => t.location && t.location.toLowerCase().includes(globalSearch))
+                    .map(t => ({
+                        name: t.location,
+                        userId: t.userId,
+                        role: `Counter: ${t.userName} (${t.binType || 'Pick'})`,
+                        type: 'Cycle Count',
+                        isTask: true,
+                        taskIndex: t.index
+                    }));
+
                 const results = [
                     ...checkedInMembers.map(m => ({ ...m, type: 'Present' })),
                     ...checkedOutMembers.map(m => ({ ...m, type: 'Timed Out' })),
-                    ...filteredRegister.map(m => ({ ...m, type: 'User' }))
+                    ...filteredRegister.map(m => ({ ...m, type: 'User' })),
+                    ...taskMatches
                 ];
-                const uniqueResults = Array.from(new Set(results.map(r => r.userId))).map(id => results.find(r => r.userId === id));
+                const uniqueResults = Array.from(new Set(results.map(r => r.isTask ? `task-${r.taskIndex}` : r.userId)))
+                    .map(key => results.find(r => (r.isTask ? `task-${r.taskIndex}` : r.userId) === key));
+
                 const globalSearchResults = document.getElementById('globalSearchResults');
                 if (globalSearchResults) {
                     globalSearchResults.innerHTML = uniqueResults.map(m => `
@@ -2046,7 +2120,7 @@
                                 <span style="font-size:0.7rem; color:var(--text-light)">ID: ${m.userId}</span>
                             </div>
                             <div class="col-actions">
-                                <button class="btn-action-sm details" onclick="showMemberDetails(${m.index})" title="View Details"><span class="material-symbols-outlined">info</span></button>
+                                ${m.isTask ? '' : `<button class="btn-action-sm details" onclick="showMemberDetails(${m.index})" title="View Details"><span class="material-symbols-outlined">info</span></button>`}
                             </div>
                         </li>
                     `).join('') || `<div class="empty-state">No results found for "${globalSearch}"</div>`;
@@ -2099,7 +2173,14 @@
             // Render Tasks (Filtered by Active/History Tab)
             const tasksToShow = state.tasks
                 .map((t, i) => ({ ...t, originalIndex: i }))
-                .filter(t => activeProductivitySubTab === 'active' ? !t.completed : t.completed)
+                .filter(t => {
+                    const matchesTab = activeProductivitySubTab === 'active' ? !t.completed : t.completed;
+                    const matchesSearch = !globalSearch || 
+                        (t.location && t.location.toLowerCase().includes(globalSearch)) || 
+                        (t.userName && t.userName.toLowerCase().includes(globalSearch)) ||
+                        (t.userId && t.userId.toLowerCase().includes(globalSearch));
+                    return matchesTab && matchesSearch;
+                })
                 .reverse();
 
             const prodLimit = activeProductivitySubTab === 'active' ? 999 : displayLimits.prodHistory;
