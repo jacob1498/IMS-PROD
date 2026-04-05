@@ -597,7 +597,7 @@
                         <span class="material-symbols-outlined">close</span>
                     </button>
                 </div>
-                <h2 style="margin: 10px 0 0 0; font-size: 1.4rem; border:none; padding:0">WorkFlow Pro</h2>
+                <h2 class="sidebar-title" style="margin: 10px 0 0 0; font-size: 1.4rem; border:none; padding:0">WorkFlow Pro</h2>
                 <p style="margin:0; font-size: 0.8rem; opacity: 0.8;">Team Management System</p>
             </div>
 
@@ -767,23 +767,45 @@
 
             <!-- Dashboard Summary Section -->
             <div id="summarySection" class="hidden">
-                <h2>Team Performance Summary</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                <h2>Shift Performance Summary</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <!-- Shift 1 -->
                     <div class="card" style="text-align: center; border-top: 4px solid var(--primary);">
-                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">1st Shift Active</div>
-                        <div id="sumS1Percent" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0%</div>
-                        <div id="sumS1Sub" style="font-size: 0.6rem; color: var(--text-light);">0 / 25</div>
+                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">1st Shift Total</div>
+                        <div id="sumS1TotalPercent" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0%</div>
+                        <div id="sumS1TotalSub" style="font-size: 0.6rem; color: var(--text-light);">0 / 25</div>
                     </div>
+                    <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
+                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">1st Shift Present</div>
+                        <div id="sumS1PresentPercent" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0%</div>
+                        <div id="sumS1PresentSub" style="font-size: 0.6rem; color: var(--text-light);">0 / 25</div>
+                    </div>
+
+                    <!-- Shift 2 -->
                     <div class="card" style="text-align: center; border-top: 4px solid var(--primary);">
-                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">2nd Shift Active</div>
-                        <div id="sumS2Percent" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0%</div>
-                        <div id="sumS2Sub" style="font-size: 0.6rem; color: var(--text-light);">0 / 25</div>
+                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">2nd Shift Total</div>
+                        <div id="sumS2TotalPercent" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0%</div>
+                        <div id="sumS2TotalSub" style="font-size: 0.6rem; color: var(--text-light);">0 / 25</div>
                     </div>
+                    <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
+                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">2nd Shift Present</div>
+                        <div id="sumS2PresentPercent" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0%</div>
+                        <div id="sumS2PresentSub" style="font-size: 0.6rem; color: var(--text-light);">0 / 25</div>
+                    </div>
+
+                    <!-- Shift 3 -->
                     <div class="card" style="text-align: center; border-top: 4px solid var(--primary);">
-                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">3rd Shift Active</div>
-                        <div id="sumS3Percent" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0%</div>
-                        <div id="sumS3Sub" style="font-size: 0.6rem; color: var(--text-light);">0 / 25</div>
+                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">3rd Shift Total</div>
+                        <div id="sumS3TotalPercent" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0%</div>
+                        <div id="sumS3TotalSub" style="font-size: 0.6rem; color: var(--text-light);">0 / 25</div>
                     </div>
+                    <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
+                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">3rd Shift Present</div>
+                        <div id="sumS3PresentPercent" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0%</div>
+                        <div id="sumS3PresentSub" style="font-size: 0.6rem; color: var(--text-light);">0 / 25</div>
+                    </div>
+
+                    <!-- Break Summaries -->
                     <div class="card" onclick="showBreakList('all')" style="text-align: center; border-top: 4px solid #eab308; cursor: pointer;">
                         <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">On Break</div>
                         <div id="sumBreak" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0</div>
@@ -795,8 +817,12 @@
                     </div>
                 </div>
                 <div class="card">
-                    <h3 style="margin-top:0">Quick Insights</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-light);">Active counts are segmented by shift (1st, 2nd, 3rd) and include both Present and On Break members. Long breaks are calculated based on current time vs initial break-out timestamp.</p>
+                    <h3 style="margin-top:0">Insights</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-light);">
+                        "Total" counts include all members who have clocked in for that shift today (Present, On Break, or Timed Out).
+                        "Present" counts only members currently on site.
+                        Long breaks are calculated based on current time vs initial break-out timestamp, only for the current shift.
+                    </p>
                 </div>
             </div>
 
@@ -1446,6 +1472,11 @@
 
         function showBreakList(type) {
             const now = new Date();
+            const hour = now.getHours();
+            let currentShift = '3rd';
+            if (hour >= 6 && hour < 14) currentShift = '1st';
+            else if (hour >= 14 && hour < 22) currentShift = '2nd';
+
             const getDuration = (outStr) => {
                 if (!outStr || outStr === '--') return 0;
                 try {
@@ -1462,7 +1493,10 @@
 
             const list = state.members.filter(m => {
                 if (m.status !== 'On Break') return false;
-                return type === 'long' ? getDuration(m.breakOut) > 40 : true;
+                const isLong = getDuration(m.breakOut) > 40;
+                // If viewing long breaks, also filter by the current shift
+                if (type === 'long') return isLong && m.shift === currentShift;
+                return true;
             });
 
             const title = document.querySelector('#detailsModal h3');
@@ -1532,6 +1566,13 @@
             const isMobile = window.innerWidth <= 768;
             const isSearching = searchOverlay && searchOverlay.classList.contains('show');
             
+            // Calculate Current Shift
+            const now = new Date();
+            const hour = now.getHours();
+            let currentShift = '3rd';
+            if (hour >= 6 && hour < 14) currentShift = '1st';
+            else if (hour >= 14 && hour < 22) currentShift = '2nd';
+
             // Hide header during search for a focused, clean interface
             const header = document.querySelector('header');
             if (header) header.style.display = isSearching ? 'none' : 'block';
@@ -1784,21 +1825,30 @@
 
             // Update Summary Stats
             const totalMembers = state.members.length;
-            const s1Count = state.members.filter(m => m.status !== 'Away' && m.shift === '1st').length;
-            const s2Count = state.members.filter(m => m.status !== 'Away' && m.shift === '2nd').length;
-            const s3Count = state.members.filter(m => m.status !== 'Away' && m.shift === '3rd').length;
-            
-            const requirement = 25; // Requirement per shift
-            const s1Percent = requirement > 0 ? Math.round((s1Count / requirement) * 100) : 0;
-            const s2Percent = requirement > 0 ? Math.round((s2Count / requirement) * 100) : 0;
-            const s3Percent = requirement > 0 ? Math.round((s3Count / requirement) * 100) : 0;
+            const todayStr = new Date().toLocaleDateString();
+            const requirement = 25; 
 
+            const getShiftData = (s) => {
+                const shiftMembers = state.members.filter(m => m.shift === s && m.date === todayStr);
+                const total = shiftMembers.length; // Present + Break + Timed Out
+                const present = shiftMembers.filter(m => m.status === 'Present').length; // Active (Not on break)
+                return {
+                    total,
+                    present,
+                    totalPct: requirement > 0 ? Math.round((total / requirement) * 100) : 0,
+                    presentPct: requirement > 0 ? Math.round((present / requirement) * 100) : 0
+                };
+            };
+
+            const s1 = getShiftData('1st');
+            const s2 = getShiftData('2nd');
+            const s3 = getShiftData('3rd');
             const breakCount = state.members.filter(m => m.status === 'On Break').length;
 
-            // Calculate Long Breaks (> 40 mins)
-            const now = new Date();
+            // Calculate Long Breaks (> 40 mins) - Resets per shift
             const longBreakCount = state.members.filter(m => {
-                if (m.status !== 'On Break' || !m.breakOut || m.breakOut === '--') return false;
+                // Only count long breaks for members in the current active shift
+                if (m.status !== 'On Break' || m.shift !== currentShift || !m.breakOut || m.breakOut === '--') return false;
                 try {
                     // Parse "HH:MM AM/PM"
                     const [time, modifier] = m.breakOut.split(' ');
@@ -1823,12 +1873,20 @@
             if(document.getElementById('regTotalCount')) document.getElementById('regTotalCount').innerText = totalMembers;
             
             // Update Shift Summaries
-            if(document.getElementById('sumS1Percent')) document.getElementById('sumS1Percent').innerText = s1Percent + '%';
-            if(document.getElementById('sumS1Sub')) document.getElementById('sumS1Sub').innerText = `${s1Count} / ${requirement}`;
-            if(document.getElementById('sumS2Percent')) document.getElementById('sumS2Percent').innerText = s2Percent + '%';
-            if(document.getElementById('sumS2Sub')) document.getElementById('sumS2Sub').innerText = `${s2Count} / ${requirement}`;
-            if(document.getElementById('sumS3Percent')) document.getElementById('sumS3Percent').innerText = s3Percent + '%';
-            if(document.getElementById('sumS3Sub')) document.getElementById('sumS3Sub').innerText = `${s3Count} / ${requirement}`;
+            if(document.getElementById('sumS1TotalPercent')) document.getElementById('sumS1TotalPercent').innerText = s1.totalPct + '%';
+            if(document.getElementById('sumS1TotalSub')) document.getElementById('sumS1TotalSub').innerText = `${s1.total} / ${requirement}`;
+            if(document.getElementById('sumS1PresentPercent')) document.getElementById('sumS1PresentPercent').innerText = s1.presentPct + '%';
+            if(document.getElementById('sumS1PresentSub')) document.getElementById('sumS1PresentSub').innerText = `${s1.present} / ${requirement}`;
+
+            if(document.getElementById('sumS2TotalPercent')) document.getElementById('sumS2TotalPercent').innerText = s2.totalPct + '%';
+            if(document.getElementById('sumS2TotalSub')) document.getElementById('sumS2TotalSub').innerText = `${s2.total} / ${requirement}`;
+            if(document.getElementById('sumS2PresentPercent')) document.getElementById('sumS2PresentPercent').innerText = s2.presentPct + '%';
+            if(document.getElementById('sumS2PresentSub')) document.getElementById('sumS2PresentSub').innerText = `${s2.present} / ${requirement}`;
+
+            if(document.getElementById('sumS3TotalPercent')) document.getElementById('sumS3TotalPercent').innerText = s3.totalPct + '%';
+            if(document.getElementById('sumS3TotalSub')) document.getElementById('sumS3TotalSub').innerText = `${s3.total} / ${requirement}`;
+            if(document.getElementById('sumS3PresentPercent')) document.getElementById('sumS3PresentPercent').innerText = s3.presentPct + '%';
+            if(document.getElementById('sumS3PresentSub')) document.getElementById('sumS3PresentSub').innerText = `${s3.present} / ${requirement}`;
 
             if(document.getElementById('sumBreak')) document.getElementById('sumBreak').innerText = breakCount;
             if(document.getElementById('sumLongBreak')) document.getElementById('sumLongBreak').innerText = longBreakCount;
