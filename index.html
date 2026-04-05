@@ -416,12 +416,12 @@
 
         /* Media Queries should always be at the bottom to correctly override base styles */
         @media (max-width: 768px) {
-            .container { padding: 10px; width: 100%; box-sizing: border-box; }
+            body { padding: 0; padding-bottom: 80px; }
+            .container { padding: 15px; width: 100%; box-sizing: border-box; }
             .tab-group { display: none !important; }
             #mobileMenuBtn { display: flex; }
             
-            header { margin-bottom: 20px; }
-            header { margin-top: 0; padding-top: 15px; margin-bottom: 20px; }
+            header { margin: 0; padding: 15px 0; background: var(--card); border-bottom: 1px solid var(--border); }
             header h1 { font-size: 1.5rem; margin: 0; color: var(--text); }
             
             .live-clock { display: none !important; }
@@ -456,7 +456,6 @@
             li:has(.on-break) { border-left-color: #eab308; }
             li:has(.away) { border-left-color: var(--danger); }
 
-            /* Ensure horizontal flow for small badges */
             .mobile-meta-row { 
                 grid-area: meta;
                 display: flex; 
@@ -478,8 +477,7 @@
             
             .col-status { width: auto !important; margin: 0; transform: scale(0.75); transform-origin: left; }
             .col-status .status-badge { padding: 1px 8px; }
-            .col-role { font-size: 0.7rem; color: var(--text-light); font-weight: 500; }
-            .col-id, .col-date, .col-shift { display: none !important; }
+            li > .col-id, li > .col-role, li > .col-date, li > .col-shift { display: none !important; }
 
             .col-actions {
                 grid-area: actions;
@@ -603,6 +601,19 @@
                     </button>
                     <button id="side-productivityTabBtn" onclick="switchDashboardTab('productivity'); toggleSidebar();">
                         <span class="material-symbols-outlined">trending_up</span> Productivity
+                    </button>
+                </div>
+
+                <div id="side-attendanceSubMenu" class="sidebar-nav-group">
+                    <small>Attendance Views</small>
+                    <button onclick="switchAttendanceSubTab('checkin'); toggleSidebar();" style="font-size: 0.85rem; opacity: 0.9;">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">how_to_reg</span> Check-in
+                    </button>
+                    <button onclick="switchAttendanceSubTab('history'); toggleSidebar();" style="font-size: 0.85rem; opacity: 0.9;">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">history</span> History
+                    </button>
+                    <button onclick="switchAttendanceSubTab('register'); toggleSidebar();" style="font-size: 0.85rem; opacity: 0.9;">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">person_add</span> User Master
                     </button>
                 </div>
             </div>
