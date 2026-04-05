@@ -753,6 +753,12 @@
                 <h2>Team Schedule</h2>
                 <div class="empty-state">Weekly rosters and shift scheduling management coming soon.</div>
             </div>
+
+            <!-- Consolidated Search Results Section -->
+            <div id="searchResultsSection" class="hidden">
+                <h2 style="border-bottom:none; margin-bottom:10px">Search Results</h2>
+                <ul id="globalSearchResults"></ul>
+            </div>
         </div>
 
         <footer class="container dashboard-footer"></footer>
@@ -973,6 +979,14 @@
                 document.getElementById('side-homeSubMenu').classList.toggle('hidden', tab !== 'home');
             }
 
+            // Sync sidebar attendance views sub-menu visibility
+            const sideAttSub = document.getElementById('side-attendanceSubMenu');
+            if (sideAttSub) {
+                // Hide attendance views if not on home tab OR if productivity is selected within home
+                const isAttActive = document.getElementById('attendanceTabBtn').classList.contains('active');
+                sideAttSub.classList.toggle('hidden', tab !== 'home' || !isAttActive);
+            }
+
             // Update Header Title
             const titles = { 
                 home: 'Home', 
@@ -1003,6 +1017,12 @@
             if (document.getElementById('side-attendanceTabBtn')) {
                 document.getElementById('side-attendanceTabBtn').classList.toggle('active', tab === 'attendance');
                 document.getElementById('side-productivityTabBtn').classList.toggle('active', tab === 'productivity');
+            }
+
+            // Hide attendance sub-menu in sidebar if productivity is selected
+            const sideAttSub = document.getElementById('side-attendanceSubMenu');
+            if (sideAttSub) {
+                sideAttSub.classList.toggle('hidden', tab !== 'attendance');
             }
         }
 
@@ -1386,6 +1406,17 @@
             // Clean UI when searching
             const isMobile = window.innerWidth <= 768;
             const isSearching = searchOverlay && searchOverlay.classList.contains('show');
+            
+            // Hide header during search for a focused, clean interface
+            const header = document.querySelector('header');
+            if (header) header.style.display = isSearching ? 'none' : 'block';
+
+            const homeView = document.getElementById('homeView');
+            const summarySection = document.getElementById('summarySection');
+            const reportsSection = document.getElementById('reportsSection');
+            const scheduleSection = document.getElementById('scheduleSection');
+            const searchResultsSection = document.getElementById('searchResultsSection');
+            
             const checkinUI = document.querySelector('#checkinSubSection .scan-area');
             const checkinH2 = document.querySelector('#checkinSubSection h2');
             const historyUI = document.querySelector('#historySubSection .input-group');
@@ -1394,12 +1425,21 @@
             const footerNav = document.querySelector('.footer-nav');
             const mainTabGroups = document.querySelectorAll('.tab-group');
 
+            // Visibility toggles for "Clean View" during search
+            if (homeView) homeView.classList.toggle('hidden', isSearching);
+            if (summarySection) summarySection.classList.toggle('hidden', isSearching);
+            if (reportsSection) reportsSection.classList.toggle('hidden', isSearching);
+            if (scheduleSection) scheduleSection.classList.toggle('hidden', isSearching);
+            
+            // Only show search results section if searching AND there is text in the search input
+            if (searchResultsSection) searchResultsSection.classList.toggle('hidden', !isSearching || globalSearch === '');
+
             if (checkinUI) checkinUI.style.display = (isSearching || isMobile) ? 'none' : 'block';
             if (checkinH2) checkinH2.style.display = isSearching ? 'none' : 'block';
             if (historyUI) historyUI.style.display = isSearching ? 'none' : 'flex';
             if (historyH2) historyH2.style.display = isSearching ? 'none' : 'block';
             if (registerUI) registerUI.style.display = isSearching ? 'none' : 'flex';
-            if (footerNav) footerNav.style.visibility = (isSearching && window.innerWidth <= 768) ? 'hidden' : 'visible';
+            if (footerNav) footerNav.style.visibility = 'visible';
             
             mainTabGroups.forEach(tg => tg.style.display = isSearching ? 'none' : '');
 
@@ -1459,6 +1499,32 @@
                             Load More (${checkedInMembers.length - checkinLimit} remaining)
                         </button>
                     </div>`;
+            }
+
+            // Render dedicated search results if active
+            if (isSearching) {
+                const results = [
+                    ...checkedInMembers.map(m => ({ ...m, type: 'Present' })),
+                    ...checkedOutMembers.map(m => ({ ...m, type: 'Timed Out' })),
+                    ...filteredRegister.map(m => ({ ...m, type: 'User' }))
+                ];
+                const uniqueResults = Array.from(new Set(results.map(r => r.userId))).map(id => results.find(r => r.userId === id));
+                const globalSearchResults = document.getElementById('globalSearchResults');
+                globalSearchResults.innerHTML = uniqueResults.map(m => `
+                    <li>
+                        <div class="col-info">
+                            <div style="font-size:0.65rem; color:var(--primary); font-weight:800; text-transform:uppercase">${m.type}</div>
+                            ${m.name}
+                        </div>
+                        <div class="mobile-meta-row">
+                            <span class="col-role">${m.role || '--'}</span>
+                            <span style="font-size:0.7rem; color:var(--text-light)">ID: ${m.userId}</span>
+                        </div>
+                        <div class="col-actions">
+                            <button class="btn-action-sm details" onclick="showMemberDetails(${m.index})" title="View Details"><span class="material-symbols-outlined">info</span></button>
+                        </div>
+                    </li>
+                `).join('') || `<div class="empty-state">No results found for "${globalSearch}"</div>`;
             }
 
             // Render History List (Checked-out view)
