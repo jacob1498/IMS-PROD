@@ -330,13 +330,14 @@
             position: fixed;
             top: 15px;
             left: 15px;
-            z-index: 1050;
-            background: var(--primary);
-            color: white;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            box-shadow: var(--shadow);
+            z-index: 1060;
+            background: transparent;
+            color: var(--primary);
+            border: none;
+            width: 35px;
+            height: 35px;
+            box-shadow: none;
+            padding: 0;
         }
         .sidebar-overlay {
             position: fixed;
@@ -444,10 +445,12 @@
             .tab-group { display: none !important; }
             #mobileMenuBtn { display: flex; }
             
-            header { margin: 0; padding: 15px 0; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1040; }
+            header { margin: 0; padding: 15px 0; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1050; }
             header h1 { font-size: 1.5rem; margin: 0; color: var(--text); }
             h2 { top: 60px; }
             
+            #mobileMenuBtn { top: 18px; left: 18px; }
+
             .live-clock { display: none !important; }
 
             /* FAB & Footer Navigation Visibility */
@@ -1533,9 +1536,22 @@
             if (!input.value) return;
             state.tasks.push({
                 text: input.value,
-                completed: false
+                completed: false,
+                startTime: null,
+                endTime: null
             });
             input.value = '';
+            saveData();
+        }
+
+        function startTimer(index) {
+            state.tasks[index].startTime = new Date().toISOString();
+            saveData();
+        }
+
+        function stopTimer(index) {
+            state.tasks[index].endTime = new Date().toISOString();
+            state.tasks[index].completed = true;
             saveData();
         }
 
@@ -1547,6 +1563,14 @@
         function deleteTask(index) {
             state.tasks.splice(index, 1);
             saveData();
+        }
+
+        function calculateDuration(start, end) {
+            if (!start) return '--';
+            const startTime = new Date(start);
+            const endTime = end ? new Date(end) : new Date();
+            const diff = Math.floor((endTime - startTime) / 60000); // minutes
+            return diff + 'm';
         }
 
         // Render UI
@@ -1806,16 +1830,39 @@
             }
 
             // Render Tasks
-            taskList.innerHTML = state.tasks.length ? state.tasks.map((t, i) => `
-                <li>
-                    <span class="${t.completed ? 'task-done' : ''}" onclick="toggleTask(${i})" style="cursor:pointer">
-                        ${t.completed ? '✓ ' : '○ '} ${t.text}
-                    </span>
-                    <button onclick="deleteTask(${i})" style="background:none; color:var(--danger); padding:0">
-                        <span class="material-symbols-outlined" style="font-size:18px">delete</span>
-                    </button>
+            taskList.innerHTML = state.tasks.length ? state.tasks.map((t, i) => {
+                const sTime = t.startTime ? new Date(t.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                const eTime = t.endTime ? new Date(t.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                const duration = calculateDuration(t.startTime, t.endTime);
+                
+                return `
+                <li style="flex-direction: column; align-items: stretch; padding: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="${t.completed ? 'task-done' : ''}" style="font-weight: 600; font-size: 1rem;">
+                            ${t.text}
+                        </span>
+                        <div style="display: flex; gap: 8px;">
+                            ${!t.startTime ? `
+                                <button onclick="startTimer(${i})" style="background: var(--success); padding: 4px 10px; font-size: 0.7rem;">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">play_arrow</span> Start
+                                </button>
+                            ` : (!t.endTime ? `
+                                <button onclick="stopTimer(${i})" style="background: var(--danger); padding: 4px 10px; font-size: 0.7rem;">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">stop</span> Stop
+                                </button>
+                            ` : '')}
+                            <button onclick="deleteTask(${i})" style="background:none; color:var(--text-light); padding:0">
+                                <span class="material-symbols-outlined" style="font-size:18px">delete</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 15px; font-size: 0.7rem; color: var(--text-light); background: var(--bg); padding: 8px; border-radius: 6px;">
+                        <span><strong style="color:var(--primary)">START:</strong> ${sTime}</span>
+                        <span><strong style="color:var(--primary)">END:</strong> ${eTime}</span>
+                        <span style="margin-left: auto; font-weight: 800; color: var(--text);">DURATION: ${duration}</span>
+                    </div>
                 </li>
-            `).join('') : '<div class="empty-state">No tasks to track yet.</div>';
+            `}).join('') : '<div class="empty-state">No counters active. Add a task to begin.</div>';
 
             // Update Progress
             const completedCount = state.tasks.filter(t => t.completed).length;
