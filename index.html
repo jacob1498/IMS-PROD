@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkFlow | Attendance & Productivity</title>
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+        }
+
+        header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Auth Styles */
+        .auth-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 2rem;
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .auth-tabs button {
+            flex: 1;
+            background: #e2e8f0;
+            color: var(--text);
+        }
+
+        .auth-tabs button.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .hidden { display: none !important; }
+
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: white;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        
+        #userDisplay { font-weight: 500; font-size: 0.9rem; color: var(--text-light); }
+
+        .card {
+            background: var(--card);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: transform 0.2s ease;
+        }
+        
+        .card:hover { transform: translateY(-2px); }
+
+        h2 { margin-top: 0; font-size: 1.25rem; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            outline: none;
+        }
+
+        button {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+
+        ul { list-style: none; padding: 0; }
+
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid var(--bg);
+            transition: background 0.2s;
+        }
+        
+        li:hover { background: #f8fafc; }
+        li:last-child { border-bottom: none; }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--border);
+        }
+
+        .present { background: #dcfce7; color: #166534; }
+
+        .progress-container {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            height: 100%;
+            background: var(--success);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .task-done { text-decoration: line-through; color: #94a3b8; }
+        
+        .empty-state { text-align: center; color: var(--text-light); padding: 20px; font-style: italic; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <!-- Auth Section -->
+    <div id="authView" class="auth-container">
+        <h2 id="authTitle" style="border:none; text-align:center">Welcome Back</h2>
+        <div class="auth-tabs">
+            <button id="loginTab" class="active" onclick="toggleAuthMode('login')">Login</button>
+            <button id="signupTab" onclick="toggleAuthMode('signup')">Sign Up</button>
+        </div>
+        <div class="input-group" style="flex-direction: column;">
+            <input type="email" id="email" placeholder="Email address">
+            <input type="password" id="password" placeholder="Password">
+            <button id="authBtn" onclick="handleAuth()" style="margin-top:10px">Sign In</button>
+        </div>
+        <p id="authMsg" style="font-size:0.8rem; color:var(--danger); text-align:center"></p>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboardView" class="hidden">
+        <div class="user-info container">
+            <span id="userDisplay"></span>
+            <button onclick="handleSignOut()" style="background:var(--danger)">Sign Out</button>
+        </div>
+
+        <header>
+            <h1>Team Dashboard</h1>
+        </header>
+
+        <div class="container">
+            <!-- Attendance Section -->
+            <div class="card">
+                <h2>Attendance</h2>
+                <div class="input-group">
+                    <input type="text" id="memberInput" placeholder="Enter name..." onkeyup="if(event.key==='Enter') addMember()">
+                    <button onclick="addMember()">Add</button>
+                </div>
+                <ul id="attendanceList"></ul>
+            </div>
+
+            <!-- Productivity Section -->
+            <div class="card">
+                <h2>Productivity Tracker</h2>
+                <div class="progress-container">
+                    <div id="progress-bar"></div>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="taskInput" placeholder="New task..." onkeyup="if(event.key==='Enter') addTask()">
+                    <button onclick="addTask()">Add Task</button>
+                </div>
+                <ul id="taskList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase
+        // REPLACE THESE WITH YOUR ACTUAL KEYS
+        const supabaseUrl = 'https://enskmqmkvdrkttjlzusn.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVuc2ttcW1rdmRya3R0amx6dXNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMzkxMDQsImV4cCI6MjA5MDgxNTEwNH0.o1QFZP5TXyTfI3tveP1hjceOxnHsdjVdCNerq1Zmdho';
+        
+        let supabaseClient = null;
+        try {
+            if (supabaseUrl.startsWith('http')) {
+                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            }
+        } catch (e) { console.error("Supabase init error:", e); }
+
+        let authMode = 'login';
+
+        // Data State
+        let state = JSON.parse(localStorage.getItem('trackerData')) || {
+            members: [],
+            tasks: []
+        };
+
+        // Auth Logic
+        async function handleAuth() {
+            if (!supabaseClient) return alert("Please configure your Supabase URL and Key first!");
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const msg = document.getElementById('authMsg');
+            
+            try {
+                let result;
+                if (authMode === 'login') {
+                    result = await supabaseClient.auth.signInWithPassword({ email, password });
+                } else {
+                    result = await supabaseClient.auth.signUp({ email, password });
+                    if (!result.error) alert('Check your email for confirmation link!');
+                }
+
+                if (result.error) throw result.error;
+            } catch (error) {
+                msg.innerText = error.message;
+            }
+        }
+
+        async function handleSignOut() {
+            if (supabaseClient) await supabaseClient.auth.signOut();
+        }
+
+        function toggleAuthMode(mode) {
+            authMode = mode;
+            document.getElementById('authTitle').innerText = mode === 'login' ? 'Welcome Back' : 'Create Account';
+            document.getElementById('authBtn').innerText = mode === 'login' ? 'Sign In' : 'Sign Up';
+            document.getElementById('loginTab').classList.toggle('active', mode === 'login');
+            document.getElementById('signupTab').classList.toggle('active', mode === 'signup');
+        }
+
+        // Monitor Auth State
+        if (supabaseClient) supabaseClient.auth.onAuthStateChange((event, session) => {
+            const authView = document.getElementById('authView');
+            const dashboardView = document.getElementById('dashboardView');
+            
+            if (session) {
+                authView.classList.add('hidden');
+                dashboardView.classList.remove('hidden');
+                document.getElementById('userDisplay').innerText = `Logged in as: ${session.user.email}`;
+                render();
+            } else {
+                authView.classList.remove('hidden');
+                dashboardView.classList.add('hidden');
+            }
+        });
+        else {
+            // Fallback for demo: show dashboard if Supabase isn't configured
+            document.getElementById('authView').classList.add('hidden');
+            document.getElementById('dashboardView').classList.remove('hidden');
+        }
+
+        function saveData() {
+            // Note: For full production, you would save this to a Supabase Table, not localStorage
+            localStorage.setItem('trackerData', JSON.stringify(state));
+            render();
+        }
+
+        // Attendance Logic
+        function addMember() {
+            const input = document.getElementById('memberInput');
+            if (!input.value) return;
+            state.members.push({
+                name: input.value,
+                present: false,
+                lastSeen: '--'
+            });
+            input.value = '';
+            saveData();
+        }
+
+        function toggleAttendance(index) {
+            state.members[index].present = !state.members[index].present;
+            state.members[index].lastSeen = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            saveData();
+        }
+
+        // Productivity Logic
+        function addTask() {
+            const input = document.getElementById('taskInput');
+            if (!input.value) return;
+            state.tasks.push({
+                text: input.value,
+                completed: false
+            });
+            input.value = '';
+            saveData();
+        }
+
+        function toggleTask(index) {
+            state.tasks[index].completed = !state.tasks[index].completed;
+            saveData();
+        }
+
+        function deleteTask(index) {
+            state.tasks.splice(index, 1);
+            saveData();
+        }
+
+        // Render UI
+        function render() {
+            const attendanceList = document.getElementById('attendanceList');
+            const taskList = document.getElementById('taskList');
+            const progressBar = document.getElementById('progress-bar');
+
+            // Render Attendance
+            attendanceList.innerHTML = state.members.length ? state.members.map((m, i) => `
+                <li>
+                    <span>${m.name} <small style="color:#64748b; margin-left:8px">${m.lastSeen}</small></span>
+                    <button 
+                        class="status-badge ${m.present ? 'present' : ''}" 
+                        onclick="toggleAttendance(${i})">
+                        ${m.present ? 'Present' : 'Away'}
+                    </button>
+                </li>
+            `).join('') : '<div class="empty-state">No members added yet.</div>';
+
+            // Render Tasks
+            taskList.innerHTML = state.tasks.length ? state.tasks.map((t, i) => `
+                <li>
+                    <span class="${t.completed ? 'task-done' : ''}" onclick="toggleTask(${i})" style="cursor:pointer">
+                        ${t.completed ? '✓ ' : '○ '} ${t.text}
+                    </span>
+                    <button onclick="deleteTask(${i})" style="background:none; color:var(--danger); padding:0">✕</button>
+                </li>
+            `).join('') : '<div class="empty-state">No tasks to track yet.</div>';
+
+            // Update Progress
+            const completedCount = state.tasks.filter(t => t.completed).length;
+            const totalTasks = state.tasks.length;
+            const progress = totalTasks === 0 ? 0 : (completedCount / totalTasks) * 100;
+            progressBar.style.width = progress + '%';
+        }
+
+        // Initial Load
+        render();
+    </script>
+</body>
+</html>
