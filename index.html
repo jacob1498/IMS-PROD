@@ -627,6 +627,48 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Excel-like Schedule Styles */
+        #scheduleSection .card { padding: 0 !important; overflow: hidden; }
+        #scheduleSection .table-header {
+            display: flex !important;
+            padding: 0 !important;
+            margin-bottom: 0;
+            border-bottom: 2px solid var(--border);
+            background: #f1f5f9;
+            border-radius: 0;
+        }
+        #scheduleSection .table-header > div {
+            padding: 10px 5px;
+            border-right: 1px solid var(--border);
+        }
+        #scheduleSection .table-header > div:last-child { border-right: none; }
+
+        .schedule-row {
+            display: flex !important;
+            align-items: stretch !important;
+            padding: 0 !important;
+            border-bottom: 1px solid var(--border) !important;
+            border-radius: 0 !important;
+            margin-bottom: 0 !important;
+            min-height: 44px;
+            background: var(--card);
+        }
+        .schedule-row > div {
+            padding: 8px 5px !important;
+            border-right: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+        .schedule-row > div:last-child { border-right: none; }
+        .schedule-row:nth-child(even) { background-color: #f8fafc !important; }
+        
+        @media (max-width: 768px) {
+            #scheduleSection .table-header > div { font-size: 0.6rem !important; padding: 8px 3px !important; }
+            .schedule-row > div { font-size: 0.65rem !important; padding: 6px 3px !important; }
+        }
     </style>
 </head>
 <body>
@@ -1029,11 +1071,11 @@
                     <div id="scheduleEmptyState" class="empty-state">No schedule data uploaded yet. Please upload a CSV with date, Area, shift, Shift Time, and required hc.</div>
                     <div id="scheduleTableWrapper" class="hidden">
                          <div class="table-header">
-                            <div style="flex: 1.2;">Date</div>
-                            <div style="flex: 1;">Area</div>
-                            <div style="flex: 0.8;">Shift</div>
-                            <div style="flex: 1.2;">Shift Time</div>
-                            <div style="flex: 0.8; text-align: right;">Req. HC</div>
+                            <div style="flex: 1.2 1 0%;">Date</div>
+                            <div style="flex: 1 1 0%;">Area</div>
+                            <div style="flex: 0.8 1 0%;">Shift</div>
+                            <div style="flex: 1.2 1 0%;">Shift Time</div>
+                            <div style="flex: 0.8 1 0%; text-align: right; padding-right: 5px;">Req. HC</div>
                         </div>
                         <ul id="scheduleList" style="padding-bottom: 0;"></ul>
                     </div>
@@ -2315,12 +2357,12 @@
                     if (scheduleEmptyState) scheduleEmptyState.classList.add('hidden');
                     if (scheduleTableWrapper) scheduleTableWrapper.classList.remove('hidden');
                     scheduleList.innerHTML = state.schedules.map(s => `
-                        <li style="display: flex !important; grid-template-columns: none !important; align-items: center; padding: 12px 10px;">
-                            <div style="flex: 1.2; font-weight: 600; font-size: 0.85rem;">${s.date}</div>
-                            <div style="flex: 1; font-size: 0.8rem;">${s.area}</div>
-                            <div style="flex: 0.8; font-size: 0.8rem;">${s.shift}</div>
-                            <div style="flex: 1.2; font-size: 0.8rem;">${s.time}</div>
-                            <div style="flex: 0.8; text-align: right; font-weight: 800; color: var(--primary); font-size: 0.85rem;">${s.hc}</div>
+                        <li class="schedule-row">
+                            <div style="flex: 1.2 1 0%; font-weight: 600;">${s.date}</div>
+                            <div style="flex: 1 1 0%;">${s.area}</div>
+                            <div style="flex: 0.8 1 0%;">${s.shift}</div>
+                            <div style="flex: 1.2 1 0%;">${s.time}</div>
+                            <div style="flex: 0.8 1 0%; justify-content: flex-end; padding-right: 5px; font-weight: 800; color: var(--primary);">${s.hc}</div>
                         </li>
                     `).join('');
                 } else {
