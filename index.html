@@ -374,7 +374,16 @@
             flex-direction: column;
             gap: 4px;
         }
-        
+
+        .sidebar-header h2 {
+            background: transparent !important;
+            position: static !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 10px 0 0 0 !important;
+            color: white !important;
+        }
+
         .sidebar-content {
             padding: 20px;
             flex: 1;
@@ -754,27 +763,29 @@
             <!-- Dashboard Summary Section -->
             <div id="summarySection" class="hidden">
                 <h2>Team Performance Summary</h2>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px;">
                     <div class="card" style="text-align: center; border-top: 4px solid var(--primary);">
-                        <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Total Users</div>
+                        <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Registered Users</div>
                         <div id="sumTotalMembers" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0</div>
                     </div>
                     <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
-                        <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Present</div>
-                        <div id="sumPresent" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0</div>
+                        <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Active vs Req</div>
+                        <div id="sumActivePercent" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0%</div>
+                        <div id="sumActiveSub" style="font-size: 0.65rem; color: var(--text-light);">0 / 25</div>
                     </div>
                     <div class="card" style="text-align: center; border-top: 4px solid #eab308;">
-                        <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">On Break</div>
+                        <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">On Break</div>
                         <div id="sumBreak" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0</div>
                     </div>
-                    <div class="card" style="text-align: center; border-top: 4px solid var(--primary-dark);">
-                        <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Task Load</div>
-                        <div id="sumTaskProgress" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0%</div>
+                    <div class="card" style="text-align: center; border-top: 4px solid var(--danger);">
+                        <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Long Breaks</div>
+                        <div id="sumLongBreak" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0</div>
+                        <div style="font-size: 0.65rem; color: var(--danger); font-weight: 600;">> 40 mins</div>
                     </div>
                 </div>
                 <div class="card">
                     <h3 style="margin-top:0">Quick Insights</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-light);">Summary updates automatically as members check in and tasks are completed.</p>
+                    <p style="font-size: 0.9rem; color: var(--text-light);">Active count includes both Present and On Break members. Long breaks are calculated based on current time vs initial break-out timestamp.</p>
                 </div>
             </div>
 
@@ -1718,11 +1729,39 @@
             const totalMembers = state.members.length;
             const presentCount = state.members.filter(m => m.status === 'Present').length;
             const breakCount = state.members.filter(m => m.status === 'On Break').length;
+            const activeCount = presentCount + breakCount;
+            const requirement = 25; // Default requirement
+            const activePercent = requirement > 0 ? Math.round((activeCount / requirement) * 100) : 0;
+
+            // Calculate Long Breaks (> 40 mins)
+            const now = new Date();
+            const longBreakCount = state.members.filter(m => {
+                if (m.status !== 'On Break' || !m.breakOut || m.breakOut === '--') return false;
+                try {
+                    // Parse "HH:MM AM/PM"
+                    const [time, modifier] = m.breakOut.split(' ');
+                    let [hours, minutes] = time.split(':');
+                    if (hours === '12') hours = '00';
+                    if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+                    
+                    const breakTime = new Date();
+                    breakTime.setHours(parseInt(hours), parseInt(minutes), 0);
+                    
+                    // If breakTime is in the future compared to now (e.g. crossing midnight), adjust
+                    if (breakTime > now) breakTime.setDate(breakTime.getDate() - 1);
+                    
+                    const diffMins = Math.floor((now - breakTime) / 60000);
+                    return diffMins > 40;
+                } catch (e) {
+                    return false;
+                }
+            }).length;
             
             if(document.getElementById('sumTotalMembers')) document.getElementById('sumTotalMembers').innerText = totalMembers;
-            if(document.getElementById('sumPresent')) document.getElementById('sumPresent').innerText = presentCount;
+            if(document.getElementById('sumActivePercent')) document.getElementById('sumActivePercent').innerText = activePercent + '%';
+            if(document.getElementById('sumActiveSub')) document.getElementById('sumActiveSub').innerText = `${activeCount} / ${requirement}`;
             if(document.getElementById('sumBreak')) document.getElementById('sumBreak').innerText = breakCount;
-            if(document.getElementById('sumTaskProgress')) document.getElementById('sumTaskProgress').innerText = Math.round(progress) + '%';
+            if(document.getElementById('sumLongBreak')) document.getElementById('sumLongBreak').innerText = longBreakCount;
         }
 
         // Handle scroll events for sticky UI and back-to-top button
