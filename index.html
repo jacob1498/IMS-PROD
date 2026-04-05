@@ -464,30 +464,52 @@
             }
             li.expanded .expand-icon { transform: rotate(180deg); }
 
-            /* Mobile Actions: Always show or make accessible */
+            /* Floating Mobile Action Menu */
+            .action-trigger {
+                position: absolute;
+                bottom: 15px;
+                right: 15px;
+                display: flex !important;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                padding: 0;
+                background: var(--bg);
+                color: var(--primary);
+                border: 1px solid var(--border);
+                box-shadow: var(--shadow);
+            }
+
             .hover-actions {
-                position: static;
-                transform: none !important;
-                opacity: 1;
-                pointer-events: auto;
+                position: absolute;
+                bottom: 65px;
+                right: 15px;
+                top: auto;
+                transform: translateY(10px) scale(0.9) !important;
                 flex-direction: column;
                 align-items: stretch;
-                width: 100%;
-                margin-top: 10px;
-                box-shadow: none;
-                padding: 0;
-                border: none;
-                background: transparent;
+                width: 160px;
+                opacity: 0;
+                pointer-events: none;
+                background: var(--card);
+                box-shadow: 0 10px 25px rgba(0,0,0,0.2);
                 gap: 6px;
+                z-index: 110;
             }
             
+            li.show-actions .hover-actions {
+                opacity: 1;
+                pointer-events: auto;
+                transform: translateY(0) scale(1) !important;
+            }
+
             /* Specific fix for Register Action Button Container */
             li > div[style*="width: 80px"] { width: 100% !important; text-align: left !important; margin-top: 5px; }
 
             .hover-actions button { 
                 width: 100%; 
-                padding: 14px !important; 
-                font-size: 0.9rem !important;
+                padding: 10px !important; 
+                font-size: 0.75rem !important;
                 justify-content: center;
             }
         }
@@ -881,6 +903,17 @@
             }
         }
 
+        function toggleActions(event, btn) {
+            event.stopPropagation();
+            const li = btn.closest('li');
+            const wasOpen = li.classList.contains('show-actions');
+            
+            // Close all other open menus
+            document.querySelectorAll('li.show-actions').forEach(el => el.classList.remove('show-actions'));
+            
+            if (!wasOpen) li.classList.add('show-actions');
+        }
+
         function scanAttendance() {
             const scanInput = document.getElementById('scanInput');
             const userId = scanInput.value.trim();
@@ -1054,6 +1087,10 @@
                     </div>
                     
                     <!-- Hover Actions -->
+                    <button class="action-trigger" onclick="toggleActions(event, this)" style="display:none">
+                        <span class="material-symbols-outlined">more_vert</span>
+                    </button>
+
                     <div class="hover-actions" onclick="event.stopPropagation()">
                         ${m.status === 'Present' ? 
                             `<button onclick="updateStatus(${m.index}, 'On Break')" style="background:#eab308">
@@ -1124,6 +1161,10 @@
                         </div>
                         
                         <!-- Hover Actions -->
+                        <button class="action-trigger" onclick="toggleActions(event, this)" style="display:none">
+                            <span class="material-symbols-outlined">more_vert</span>
+                        </button>
+
                         <div class="hover-actions" onclick="event.stopPropagation()">
                             <button onclick="updateStatus(${m.index}, 'Present')" style="background:var(--primary)">
                                 <span class="material-symbols-outlined" style="font-size:16px">refresh</span>
