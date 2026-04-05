@@ -835,6 +835,10 @@
                 <span class="material-symbols-outlined">dashboard</span>
                 <span>Dashboard</span>
             </button>
+            <button class="footer-nav-item" onclick="toggleSearchOverlay()">
+                <span class="material-symbols-outlined">search</span>
+                <span>Search</span>
+            </button>
             <button class="footer-nav-item" onclick="switchFooterTab('reports')" data-tab="reports">
                 <span class="material-symbols-outlined">analytics</span>
                 <span>Reports</span>
@@ -985,6 +989,12 @@
             });
             if (document.getElementById('side-homeSubMenu')) {
                 document.getElementById('side-homeSubMenu').classList.toggle('hidden', tab !== 'home');
+            }
+            if (document.getElementById('side-attendanceSubMenu')) {
+                document.getElementById('side-attendanceSubMenu').classList.toggle('hidden', tab !== 'home');
+            }
+            if (document.getElementById('side-attendanceSubMenu')) {
+                document.getElementById('side-attendanceSubMenu').classList.toggle('hidden', tab !== 'home');
             }
 
             // Update Header Title
@@ -1605,7 +1615,6 @@
         
         if (fromFilter) fromFilter.value = state.historyFilterFromDate || '';
         if (toFilter) toFilter.value = state.historyFilterToDate || '';
-
 
         // Initial Load
         render();
