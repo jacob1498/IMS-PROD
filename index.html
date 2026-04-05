@@ -360,60 +360,126 @@
         .sidebar {
             position: fixed;
             top: 0;
-            left: -280px;
+            left: 0;
             width: 280px;
             height: 100%;
             background: var(--card);
             z-index: 1200;
-            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: 24px;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(-100%);
             display: flex;
             flex-direction: column;
-            gap: 20px;
             box-shadow: 4px 0 15px rgba(0,0,0,0.1);
         }
-        .sidebar.open { left: 0; }
-        .sidebar-nav-group { display: flex; flex-direction: column; gap: 8px; }
+        .sidebar.open { transform: translateX(0); }
+        
+        .sidebar-header {
+            padding: 24px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .sidebar-content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .sidebar-nav-group { display: flex; flex-direction: column; gap: 4px; }
         .sidebar-nav-group small {
             text-transform: uppercase;
-            font-size: 0.65rem;
+            font-size: 0.7rem;
             font-weight: 800;
             color: var(--text-light);
-            margin-bottom: 4px;
-            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            padding-left: 12px;
+            letter-spacing: 0.08em;
         }
-        .sidebar button { justify-content: flex-start; padding: 12px; }
+
+        .sidebar button { 
+            justify-content: flex-start; 
+            padding: 12px 16px; 
+            background: transparent;
+            color: var(--text);
+            border-radius: 8px;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .sidebar button:hover { background: var(--bg); color: var(--primary); }
+
+        .sidebar button.active {
+            background: #eef2ff;
+            color: var(--primary);
+        }
+
+        .sidebar button.active::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 20%;
+            height: 60%;
+            width: 4px;
+            background: var(--primary);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+        }
     </style>
 </head>
 <body>
     <!-- Mobile Sidebar -->
     <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
     <nav id="sidebar" class="sidebar">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px;">
-            <h3 style="margin:0">Menu</h3>
-            <button onclick="toggleSidebar()" style="background:none; color:var(--text); padding:0">
-                <span class="material-symbols-outlined">close</span>
-            </button>
+        <div class="sidebar-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <span class="material-symbols-outlined" style="font-size: 32px;">rocket_launch</span>
+                <button onclick="toggleSidebar()" style="background:none; color:white; padding:0; transform:none">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <h2 style="margin: 10px 0 0 0; font-size: 1.4rem; border:none; padding:0">WorkFlow Pro</h2>
+            <p style="margin:0; font-size: 0.8rem; opacity: 0.8;">Team Management System</p>
         </div>
-        <div class="sidebar-nav-group">
-            <small>Main Navigation</small>
-            <button id="side-attendanceTabBtn" onclick="switchDashboardTab('attendance'); toggleSidebar();">
-                <span class="material-symbols-outlined">assignment_ind</span> Attendance
-            </button>
-            <button id="side-productivityTabBtn" onclick="switchDashboardTab('productivity'); toggleSidebar();">
-                <span class="material-symbols-outlined">trending_up</span> Productivity
-            </button>
+
+        <div class="sidebar-content">
+            <div class="sidebar-nav-group">
+                <small>Main Navigation</small>
+                <button id="side-attendanceTabBtn" onclick="switchDashboardTab('attendance'); toggleSidebar();" class="active">
+                    <span class="material-symbols-outlined">assignment_ind</span> Attendance
+                </button>
+                <button id="side-productivityTabBtn" onclick="switchDashboardTab('productivity'); toggleSidebar();">
+                    <span class="material-symbols-outlined">trending_up</span> Productivity
+                </button>
+            </div>
+
+            <div id="side-attendanceSubMenu" class="sidebar-nav-group">
+                <small>Attendance Views</small>
+                <button id="side-checkinSubTabBtn" onclick="switchAttendanceSubTab('checkin'); toggleSidebar();" class="active">
+                    <span class="material-symbols-outlined">how_to_reg</span> Check-in
+                </button>
+                <button id="side-historySubTabBtn" onclick="switchAttendanceSubTab('history'); toggleSidebar();">
+                    <span class="material-symbols-outlined">history</span> History
+                </button>
+                <button id="side-registerSubTabBtn" onclick="switchAttendanceSubTab('register'); toggleSidebar();">
+                    <span class="material-symbols-outlined">person_add</span> Register
+                </button>
+            </div>
         </div>
-        <div id="side-attendanceSubMenu" class="sidebar-nav-group">
-            <small>Attendance Views</small>
-            <button id="side-checkinSubTabBtn" onclick="switchAttendanceSubTab('checkin'); toggleSidebar();">
-                <span class="material-symbols-outlined">how_to_reg</span> Check-in
-            </button>
-            <button id="side-historySubTabBtn" onclick="switchAttendanceSubTab('history'); toggleSidebar();">
-                <span class="material-symbols-outlined">history</span> History
-            </button>
-            <button id="side-registerSubTabBtn" onclick="switchAttendanceSubTab('register'); toggleSidebar();">
-                <span class="material-symbols-outlined">person_add</span> Register
+
+        <div class="sidebar-footer">
+            <button onclick="handleSignOut()" style="background:var(--danger); width: 100%;">
+                <span class="material-symbols-outlined">logout</span>
+                Log Out
             </button>
         </div>
     </nav>
