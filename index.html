@@ -739,6 +739,11 @@
                             Register New
                         </button>
                     </div>
+                    <!-- Member Registration Summary -->
+                    <div class="card" style="padding: 12px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-left: 4px solid var(--primary);">
+                        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px;">Total Registered Members</span>
+                        <span id="regTotalCount" style="font-size: 1.4rem; font-weight: 800; color: var(--primary);">0</span>
+                    </div>
                     <ul id="registerList"></ul>
                 </div>
             </div>
@@ -763,29 +768,35 @@
             <!-- Dashboard Summary Section -->
             <div id="summarySection" class="hidden">
                 <h2>Team Performance Summary</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px;">
                     <div class="card" style="text-align: center; border-top: 4px solid var(--primary);">
-                        <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Registered Users</div>
-                        <div id="sumTotalMembers" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0</div>
+                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">1st Shift Active</div>
+                        <div id="sumS1Percent" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0%</div>
+                        <div id="sumS1Sub" style="font-size: 0.6rem; color: var(--text-light);">0 / 25</div>
                     </div>
-                    <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
-                        <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Active vs Req</div>
-                        <div id="sumActivePercent" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0%</div>
-                        <div id="sumActiveSub" style="font-size: 0.65rem; color: var(--text-light);">0 / 25</div>
+                    <div class="card" style="text-align: center; border-top: 4px solid var(--primary);">
+                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">2nd Shift Active</div>
+                        <div id="sumS2Percent" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0%</div>
+                        <div id="sumS2Sub" style="font-size: 0.6rem; color: var(--text-light);">0 / 25</div>
+                    </div>
+                    <div class="card" style="text-align: center; border-top: 4px solid var(--primary);">
+                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">3rd Shift Active</div>
+                        <div id="sumS3Percent" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0%</div>
+                        <div id="sumS3Sub" style="font-size: 0.6rem; color: var(--text-light);">0 / 25</div>
                     </div>
                     <div class="card" onclick="showBreakList('all')" style="text-align: center; border-top: 4px solid #eab308; cursor: pointer;">
-                        <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">On Break</div>
-                        <div id="sumBreak" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0</div>
+                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">On Break</div>
+                        <div id="sumBreak" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0</div>
                     </div>
                     <div class="card" onclick="showBreakList('long')" style="text-align: center; border-top: 4px solid var(--danger); cursor: pointer;">
-                        <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Long Breaks</div>
-                        <div id="sumLongBreak" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0</div>
+                        <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Long Breaks</div>
+                        <div id="sumLongBreak" style="font-size: 1.5rem; font-weight: 800; margin: 8px 0;">0</div>
                         <div style="font-size: 0.65rem; color: var(--danger); font-weight: 600;">> 40 mins</div>
                     </div>
                 </div>
                 <div class="card">
                     <h3 style="margin-top:0">Quick Insights</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-light);">Active count includes both Present and On Break members. Long breaks are calculated based on current time vs initial break-out timestamp.</p>
+                    <p style="font-size: 0.9rem; color: var(--text-light);">Active counts are segmented by shift (1st, 2nd, 3rd) and include both Present and On Break members. Long breaks are calculated based on current time vs initial break-out timestamp.</p>
                 </div>
             </div>
 
@@ -1773,11 +1784,16 @@
 
             // Update Summary Stats
             const totalMembers = state.members.length;
-            const presentCount = state.members.filter(m => m.status === 'Present').length;
+            const s1Count = state.members.filter(m => m.status !== 'Away' && m.shift === '1st').length;
+            const s2Count = state.members.filter(m => m.status !== 'Away' && m.shift === '2nd').length;
+            const s3Count = state.members.filter(m => m.status !== 'Away' && m.shift === '3rd').length;
+            
+            const requirement = 25; // Requirement per shift
+            const s1Percent = requirement > 0 ? Math.round((s1Count / requirement) * 100) : 0;
+            const s2Percent = requirement > 0 ? Math.round((s2Count / requirement) * 100) : 0;
+            const s3Percent = requirement > 0 ? Math.round((s3Count / requirement) * 100) : 0;
+
             const breakCount = state.members.filter(m => m.status === 'On Break').length;
-            const activeCount = presentCount + breakCount;
-            const requirement = 25; // Default requirement
-            const activePercent = requirement > 0 ? Math.round((activeCount / requirement) * 100) : 0;
 
             // Calculate Long Breaks (> 40 mins)
             const now = new Date();
@@ -1803,9 +1819,17 @@
                 }
             }).length;
             
-            if(document.getElementById('sumTotalMembers')) document.getElementById('sumTotalMembers').innerText = totalMembers;
-            if(document.getElementById('sumActivePercent')) document.getElementById('sumActivePercent').innerText = activePercent + '%';
-            if(document.getElementById('sumActiveSub')) document.getElementById('sumActiveSub').innerText = `${activeCount} / ${requirement}`;
+            // Update User Master Total
+            if(document.getElementById('regTotalCount')) document.getElementById('regTotalCount').innerText = totalMembers;
+            
+            // Update Shift Summaries
+            if(document.getElementById('sumS1Percent')) document.getElementById('sumS1Percent').innerText = s1Percent + '%';
+            if(document.getElementById('sumS1Sub')) document.getElementById('sumS1Sub').innerText = `${s1Count} / ${requirement}`;
+            if(document.getElementById('sumS2Percent')) document.getElementById('sumS2Percent').innerText = s2Percent + '%';
+            if(document.getElementById('sumS2Sub')) document.getElementById('sumS2Sub').innerText = `${s2Count} / ${requirement}`;
+            if(document.getElementById('sumS3Percent')) document.getElementById('sumS3Percent').innerText = s3Percent + '%';
+            if(document.getElementById('sumS3Sub')) document.getElementById('sumS3Sub').innerText = `${s3Count} / ${requirement}`;
+
             if(document.getElementById('sumBreak')) document.getElementById('sumBreak').innerText = breakCount;
             if(document.getElementById('sumLongBreak')) document.getElementById('sumLongBreak').innerText = longBreakCount;
         }
