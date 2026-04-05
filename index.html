@@ -1678,19 +1678,20 @@
                             document.getElementById('zoneModal').classList.remove('hidden');
                         } else {
                             const loc = document.getElementById('locationInput').value.trim();
-                            if (!loc) {
-                                showToast("Enter Location first!", "error");
-                            } else {
-                                supabaseClient.from('tasks').insert({
-                                    location: loc,
-                                    binType: 'Reserved',
-                                    userid: userId,
-                                    userName: member.name,
-                                    startTime: new Date().toISOString(),
-                                    completed: false
-                                }).then(() => showToast("Cycle count started!", "success"));
-                                document.getElementById('locationInput').value = ''; // Reset for next location cycle
-                            }
+                        if (!loc) return showToast("Enter Location first!", "error");
+                        
+                        supabaseClient.from('tasks').insert({
+                            location: loc,
+                            bintype: 'Reserved',
+                            userid: userId,
+                            username: member.name,
+                            starttime: new Date().toISOString(),
+                            completed: false
+                        }).then(({ error }) => {
+                            if (error) showToast(error.message, "error");
+                            else showToast("Cycle count started!", "success");
+                        });
+                        document.getElementById('locationInput').value = '';
                         }
                     }
                 }
@@ -2019,7 +2020,7 @@
                     roleStats[role] = { units: 0, skus: 0 };
                 }
                 roleStats[role].units += parseInt(task.qty || 0);
-                roleStats[role].skus += parseInt(task.skuCount || 0);
+                roleStats[role].skus += parseInt(task.skucount || 0);
             });
 
             const labels = Object.keys(roleStats);
@@ -2064,12 +2065,12 @@
             const headers = ["Location", "Bin Type", "User ID", "User Name", "Status", "Start Time", "End Time", "Duration (mins)", "Qty", "SKU Count"];
             const csvRows = [headers.join(",")];
             state.tasks.forEach(t => {
-                const duration = calculateDuration(t.startTime, t.endTime).replace('m', '');
+                const duration = calculateDuration(t.starttime, t.endtime).replace('m', '');
                 const row = [
-                    t.location, t.bintype, t.userid, t.userName, t.completed ? 'Completed' : 'Active',
-                    t.startTime ? new Date(t.startTime).toLocaleString() : '',
-                    t.endTime ? new Date(t.endTime).toLocaleString() : '',
-                    duration, t.qty || 0, t.skuCount || 0
+                    t.location, t.bintype, t.userid, t.username, t.completed ? 'Completed' : 'Active',
+                    t.starttime ? new Date(t.starttime).toLocaleString() : '',
+                    t.endtime ? new Date(t.endtime).toLocaleString() : '',
+                    duration, t.qty || 0, t.skucount || 0
                 ];
                 csvRows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
             });
@@ -2098,18 +2099,17 @@
             const index = state.members.findIndex(m => m.userid === pendingUserId);
             const member = state.members[index];
 
-            await supabaseClient.from('tasks').insert({
+            const { error } = await supabaseClient.from('tasks').insert({
                 location: zone,
                 bintype: 'Pick',
                 userid: pendingUserId,
-                userName: member.name,
-                startTime: new Date().toISOString()
-            })
-            .then(({ error }) => {
-                if (error) throw error;
+                username: member.name,
+                starttime: new Date().toISOString()
             });
             
-            showToast("Cycle count started!", "success");
+            if (error) showToast(error.message, "error");
+            else showToast("Cycle count started!", "success");
+            
             closeZoneModal();
         }
 
@@ -2138,13 +2138,10 @@
             const task = state.tasks[currentTaskStoppingIndex];
             await supabaseClient.from('tasks').update({
                 qty: qty,
-                skuCount: sku || 0,
-                endTime: new Date().toISOString(),
+                skucount: sku || 0,
+                endtime: new Date().toISOString(),
                 completed: true
-            }).eq('id', task.id)
-            .then(({ error }) => {
-                if (error) throw error;
-            });
+            }).eq('id', task.id);
 
             showToast("Cycle count finished!", "success");
             closeQuantityModal();
@@ -2157,9 +2154,9 @@
 
         function calculateDuration(start, end) {
             if (!start) return '--';
-            const startTime = new Date(start);
-            const endTime = end ? new Date(end) : new Date();
-            const diff = Math.floor((endTime - startTime) / 60000); // minutes
+            const sTime = new Date(start);
+            const eTime = end ? new Date(end) : new Date();
+            const diff = Math.floor((eTime - sTime) / 60000); // minutes
             return diff + 'm';
         }
 
@@ -2367,7 +2364,7 @@
                     .map(t => ({
                         name: t.location,
                         userid: t.userid,
-                    role: `Counter: ${t.userName} (${t.bintype || 'Pick'})`,
+                    role: `Counter: ${t.username} (${t.bintype || 'Pick'})`,
                         type: 'Cycle Count',
                         isTask: true,
                         taskIndex: t.index
@@ -2462,32 +2459,32 @@
 
             taskList.innerHTML = tasksToShow.length ? tasksToShow.slice(0, prodLimit).map((t) => {
                 const i = t.originalIndex;
-                const sTime = t.startTime ? new Date(t.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                const eTime = t.endTime ? new Date(t.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                const duration = calculateDuration(t.startTime, t.endTime);
-                const statusLabel = !t.startTime ? 'Pending' : (t.completed ? 'Completed' : 'Running');
-                const statusClass = !t.startTime ? '' : (t.completed ? 'present' : 'running');
+                const sTime = t.starttime ? new Date(t.starttime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                const eTime = t.endtime ? new Date(t.endtime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                const duration = calculateDuration(t.starttime, t.endtime);
+                const statusLabel = !t.starttime ? 'Pending' : (t.completed ? 'Completed' : 'Running');
+                const statusClass = !t.starttime ? '' : (t.completed ? 'present' : 'running');
                 
                 return `
                 <li>
                     <div class="col-info">
                         <span class="${t.completed ? 'task-done' : ''}" style="font-weight: 700; display:block">${t.location} 
                             <small style="font-weight:400; color:var(--primary)">[${t.bintype || 'Pick'}]</small></span>
-                        <div style="font-size: 0.7rem; color: var(--text-light)">${t.userName} (ID: ${t.userid})</div>
+                        <div style="font-size: 0.7rem; color: var(--text-light)">${t.username} (ID: ${t.userid})</div>
                     </div>
                     <div class="col-status">
                         <span class="status-badge ${statusClass}">${statusLabel}</span>
-                        ${t.qty ? `<div style="font-size:0.65rem; font-weight:700; margin-top:2px">Qty: ${t.qty} | SKU: ${t.skuCount || 0}</div>` : ''}
+                        ${t.qty ? `<div style="font-size:0.65rem; font-weight:700; margin-top:2px">Qty: ${t.qty} | SKU: ${t.skucount || 0}</div>` : ''}
                     </div>
                     <div class="col-date">${sTime}</div>
                     <div class="col-date">${eTime}</div>
                     <div class="col-duration">${duration}</div>
                     <div class="col-actions">
-                        ${!t.startTime ? `
+                        ${!t.starttime ? `
                             <button class="btn-action-sm" onclick="startTimer(${i})" title="Start Timer" style="color: var(--success)">
                                 <span class="material-symbols-outlined">play_circle</span>
                             </button>
-                        ` : (!t.endTime ? `
+                        ` : (!t.endtime ? `
                             <button class="btn-action-sm" onclick="stopTimer(${i})" title="Stop Timer" style="color: var(--danger)">
                                 <span class="material-symbols-outlined">stop_circle</span>
                             </button>
