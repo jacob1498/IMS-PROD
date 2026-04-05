@@ -665,24 +665,12 @@
                 </div>
 
                 <div id="registerSubSection" class="hidden">
-                    <h2>Member Registration</h2>
-                    <div class="input-group" style="flex-direction: column; margin-bottom: 20px;">
-                        <small style="color:var(--text-light); margin-bottom: 5px;">Register New Member</small>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <input type="text" id="memberIdInput" placeholder="ID (e.g. 001)" style="flex: 0.5; min-width: 80px;">
-                            <input type="text" id="memberNameInput" placeholder="Name" style="flex: 1; min-width: 150px;">
-                            <select id="memberRoleInput" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); outline: none; background: white;">
-                                <option value="" disabled selected>Select Role</option>
-                                <option value="Direct Counter">Direct Counter</option>
-                                <option value="Team leader">Team leader</option>
-                                <option value="Zone Leader">Zone Leader</option>
-                                <option value="Back up">Back up</option>
-                            </select>
-                            <button onclick="addMember()" style="padding: 8px 12px;">
-                                <span class="material-symbols-outlined">add_circle</span>
-                                Add
-                            </button>
-                        </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="border:none; padding:0; margin:0">User Master</h2>
+                        <button onclick="openRegisterModal()" style="padding: 8px 16px;">
+                            <span class="material-symbols-outlined">person_add</span>
+                            Register New
+                        </button>
                     </div>
                     <div class="search-area">
                         <input type="text" id="registerSearchInput" placeholder="🔍 Filter members by name or ID..." oninput="render()" style="background: transparent; border: none; padding: 4px 0;">
@@ -750,6 +738,40 @@
             <div class="scan-controls">
                 <input type="text" id="mobileScanInput" placeholder="Manual ID Entry..." onkeyup="if(event.key==='Enter') processScannedUserId(this.value)" style="width:100%; box-sizing:border-box; font-size:1.1rem; padding:12px">
                 <button onclick="toggleScanOverlay()" style="width:100%; background:var(--bg); color:var(--text)">Cancel Scanner</button>
+            </div>
+        </div>
+
+        <!-- Register Member Modal -->
+        <div id="registerModal" class="modal-overlay hidden" onclick="closeRegisterModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>New Registration</h3>
+                    <button onclick="closeRegisterModal()" style="background:none; color:var(--text-light); padding:0"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="input-group" style="flex-direction: column; gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">ID Number</label>
+                        <input type="text" id="memberIdInput" placeholder="e.g. 001" style="width: 100%; box-sizing: border-box;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Full Name</label>
+                        <input type="text" id="memberNameInput" placeholder="Full name" style="width: 100%; box-sizing: border-box;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Role</label>
+                        <select id="memberRoleInput" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); outline: none; background: white;">
+                            <option value="" disabled selected>Select Role</option>
+                            <option value="Direct Counter">Direct Counter</option>
+                            <option value="Team leader">Team leader</option>
+                            <option value="Zone Leader">Zone Leader</option>
+                            <option value="Back up">Back up</option>
+                        </select>
+                    </div>
+                    <button onclick="addMember()" style="width: 100%; margin-top: 10px; padding: 12px;">
+                        <span class="material-symbols-outlined">how_to_reg</span>
+                        Save Member
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -918,6 +940,15 @@
         }
 
 
+        function openRegisterModal() {
+            document.getElementById('registerModal').classList.remove('hidden');
+            document.getElementById('memberIdInput').focus();
+        }
+
+        function closeRegisterModal() {
+            document.getElementById('registerModal').classList.add('hidden');
+        }
+
         // Attendance Logic
         function addMember() {
             const idInput = document.getElementById('memberIdInput');
@@ -948,6 +979,7 @@
             idInput.value = '';
             nameInput.value = '';
             roleInput.value = '';
+            closeRegisterModal();
             saveData();
         }
 
