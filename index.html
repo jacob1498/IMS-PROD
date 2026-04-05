@@ -404,7 +404,23 @@
             .col-info { width: 100% !important; font-size: 1.2rem; font-weight: 800; color: var(--primary-dark); margin: 5px 0; }
             .col-status { width: auto !important; margin: 5px 0; }
             
-            /* Timestamps in a 2x2 grid */
+            /* Tap-to-expand Timestamp Grid */
+            .ts-grid {
+                display: flex;
+                flex-wrap: wrap;
+                width: 100%;
+                max-height: 0;
+                overflow: hidden;
+                opacity: 0;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            li.expanded .ts-grid {
+                max-height: 200px;
+                opacity: 1;
+                margin-top: 10px;
+            }
+
             .col-ts { 
                 width: 48% !important; 
                 display: inline-flex !important;
@@ -418,6 +434,16 @@
                 border: 1px solid var(--border) !important;
             }
             .col-ts::before { content: attr(title); font-weight: 900; font-size: 0.5rem; text-transform: uppercase; color: var(--primary); margin-bottom: 2px; opacity: 0.7; }
+
+            /* Expand Indicator */
+            .expand-icon {
+                position: absolute;
+                top: 18px;
+                right: 18px;
+                color: var(--primary);
+                transition: transform 0.3s;
+            }
+            li.expanded .expand-icon { transform: rotate(180deg); }
 
             /* Mobile Actions: Always show or make accessible */
             .hover-actions {
@@ -829,6 +855,13 @@
             saveData();
         }
 
+        function toggleCard(el) {
+            if (window.innerWidth <= 768) {
+                const wasExpanded = el.classList.contains('expanded');
+                el.classList.toggle('expanded');
+            }
+        }
+
         function scanAttendance() {
             const scanInput = document.getElementById('scanInput');
             const userId = scanInput.value.trim();
@@ -980,7 +1013,8 @@
                 </div>`;
 
             attendanceList.innerHTML = checkedInMembers.length ? checkinHeader + checkedInMembers.map((m) => `
-                <li>
+                <li onclick="toggleCard(this)">
+                    <span class="material-symbols-outlined expand-icon" style="display:none">expand_more</span>
                     <div class="col-id">${m.userId}</div>
                     <div class="col-role">${m.role || '--'}</div>
                     <div class="col-date">${m.date}</div>
@@ -993,13 +1027,15 @@
                             ${m.status}
                         </span>
                     </div>
-                    <div class="col-ts" title="In">${m.timeIn || '--'}</div>
-                    <div class="col-ts" title="B-Out">${m.breakOut || '--'}</div>
-                    <div class="col-ts" title="B-In">${m.breakIn || '--'}</div>
-                    <div class="col-ts" title="Out">${m.timeOut || '--'}</div>
+                    <div class="ts-grid">
+                        <div class="col-ts" title="In">${m.timeIn || '--'}</div>
+                        <div class="col-ts" title="B-Out">${m.breakOut || '--'}</div>
+                        <div class="col-ts" title="B-In">${m.breakIn || '--'}</div>
+                        <div class="col-ts" title="Out">${m.timeOut || '--'}</div>
+                    </div>
                     
                     <!-- Hover Actions -->
-                    <div class="hover-actions">
+                    <div class="hover-actions" onclick="event.stopPropagation()">
                         ${m.status === 'Present' ? 
                             `<button onclick="updateStatus(${m.index}, 'On Break')" style="background:#eab308">
                                 <span class="material-symbols-outlined" style="font-size:16px">coffee</span>
@@ -1047,7 +1083,8 @@
 
             if (historyList) {
                 historyList.innerHTML = checkedOutMembers.length ? checkinHeader + checkedOutMembers.map((m) => `
-                    <li>
+                    <li onclick="toggleCard(this)">
+                        <span class="material-symbols-outlined expand-icon" style="display:none">expand_more</span>
                         <div class="col-id">${m.userId}</div>
                         <div class="col-role">${m.role || '--'}</div>
                         <div class="col-date">${m.date}</div>
@@ -1060,13 +1097,15 @@
                                 ${m.status}
                             </span>
                         </div>
-                        <div class="col-ts" title="In">${m.timeIn}</div>
-                        <div class="col-ts" title="B-Out">${m.breakOut}</div>
-                        <div class="col-ts" title="B-In">${m.breakIn}</div>
-                        <div class="col-ts" title="Out">${m.timeOut}</div>
+                        <div class="ts-grid">
+                            <div class="col-ts" title="In">${m.timeIn}</div>
+                            <div class="col-ts" title="B-Out">${m.breakOut}</div>
+                            <div class="col-ts" title="B-In">${m.breakIn}</div>
+                            <div class="col-ts" title="Out">${m.timeOut}</div>
+                        </div>
                         
                         <!-- Hover Actions -->
-                        <div class="hover-actions">
+                        <div class="hover-actions" onclick="event.stopPropagation()">
                             <button onclick="updateStatus(${m.index}, 'Present')" style="background:var(--primary)">
                                 <span class="material-symbols-outlined" style="font-size:16px">refresh</span>
                                 Re-check In
