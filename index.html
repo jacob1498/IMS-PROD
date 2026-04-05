@@ -1015,8 +1015,29 @@
 
             <!-- Schedule Placeholder -->
             <div id="scheduleSection" class="hidden">
-                <h2>Team Schedule</h2>
-                <div class="empty-state">Weekly rosters and shift scheduling management coming soon.</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="border:none; padding:0; margin:0">Team Schedule</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="file" id="scheduleCsvInput" accept=".csv" style="display: none;" onchange="handleScheduleUpload(event)">
+                        <button onclick="document.getElementById('scheduleCsvInput').click()">
+                            <span class="material-symbols-outlined">upload_file</span>
+                            Upload CSV
+                        </button>
+                    </div>
+                </div>
+                <div id="scheduleContainer" class="card">
+                    <div id="scheduleEmptyState" class="empty-state">No schedule data uploaded yet. Please upload a CSV with date, Area, shift, Shift Time, and required hc.</div>
+                    <div id="scheduleTableWrapper" class="hidden">
+                         <div class="table-header">
+                            <div style="flex: 1.2;">Date</div>
+                            <div style="flex: 1;">Area</div>
+                            <div style="flex: 0.8;">Shift</div>
+                            <div style="flex: 1.2;">Shift Time</div>
+                            <div style="flex: 0.8; text-align: right;">Req. HC</div>
+                        </div>
+                        <ul id="scheduleList" style="padding-bottom: 0;"></ul>
+                    </div>
+                </div>
             </div>
 
             <!-- Consolidated Search Results Section -->
@@ -1230,6 +1251,7 @@
             historyFilterFromDate: '',
             historyFilterToDate: '',
             tasks: [],
+            schedules: [],
             ...uiSettings
         };
 
@@ -1870,6 +1892,29 @@
             document.querySelectorAll('li.show-actions').forEach(el => el.classList.remove('show-actions'));
         }
 
+        function handleScheduleUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                const schedules = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const parts = line.split(',');
+                    if (parts.length >= 5) {
+                        schedules.push({ date: parts[0].trim(), area: parts[1].trim(), shift: parts[2].trim(), time: parts[3].trim(), hc: parts[4].trim() });
+                    }
+                }
+                state.schedules = schedules;
+                showToast("Schedule uploaded successfully!", "success");
+                render();
+            };
+            reader.readAsText(file);
+        }
+
         function showMemberDetails(index) {
             const m = state.members[index];
             const body = document.getElementById('modalBody');
@@ -2234,6 +2279,29 @@
             const taskList = document.getElementById('taskList');
             const progressBar = document.getElementById('progress-bar');
 
+            // Render Schedule
+            const scheduleList = document.getElementById('scheduleList');
+            const scheduleEmptyState = document.getElementById('scheduleEmptyState');
+            const scheduleTableWrapper = document.getElementById('scheduleTableWrapper');
+            if (scheduleList) {
+                if (state.schedules && state.schedules.length > 0) {
+                    if (scheduleEmptyState) scheduleEmptyState.classList.add('hidden');
+                    if (scheduleTableWrapper) scheduleTableWrapper.classList.remove('hidden');
+                    scheduleList.innerHTML = state.schedules.map(s => `
+                        <li style="display: flex !important; grid-template-columns: none !important; align-items: center; padding: 12px 10px;">
+                            <div style="flex: 1.2; font-weight: 600; font-size: 0.85rem;">${s.date}</div>
+                            <div style="flex: 1; font-size: 0.8rem;">${s.area}</div>
+                            <div style="flex: 0.8; font-size: 0.8rem;">${s.shift}</div>
+                            <div style="flex: 1.2; font-size: 0.8rem;">${s.time}</div>
+                            <div style="flex: 0.8; text-align: right; font-weight: 800; color: var(--primary); font-size: 0.85rem;">${s.hc}</div>
+                        </li>
+                    `).join('');
+                } else {
+                    if (scheduleEmptyState) scheduleEmptyState.classList.remove('hidden');
+                    if (scheduleTableWrapper) scheduleTableWrapper.classList.add('hidden');
+                }
+            }
+
             // Update Summary Tab Visibility
             const shiftSumCards = document.getElementById('shiftSummaryCards');
             const cycleSumCards = document.getElementById('cycleSummaryCards');
@@ -2590,17 +2658,26 @@
             // Update Summary Stats
             const totalMembers = state.members.length;
             const todayStr = new Date().toLocaleDateString();
-            const requirement = 25; 
 
             const getShiftData = (s) => {
                 const shiftMembers = state.members.filter(m => m.shift === s && m.date === todayStr);
+                
+                // Calculate dynamic requirement from schedules for today and this shift
+                let req = 0;
+                if (state.schedules && state.schedules.length > 0) {
+                    req = state.schedules
+                        .filter(sched => sched.date === todayStr && sched.shift.toLowerCase().includes(s.toLowerCase()))
+                        .reduce((sum, sched) => sum + (parseInt(sched.hc) || 0), 0);
+                }
+
                 const total = shiftMembers.length; // Present + Break + Timed Out
                 const present = shiftMembers.filter(m => m.status === 'Present').length; // Active (Not on break)
                 return {
                     total,
                     present,
-                    totalPct: requirement > 0 ? Math.round((total / requirement) * 100) : 0,
-                    presentPct: requirement > 0 ? Math.round((present / requirement) * 100) : 0
+                    requirement: req,
+                    totalPct: req > 0 ? Math.round((total / req) * 100) : 0,
+                    presentPct: req > 0 ? Math.round((present / req) * 100) : 0
                 };
             };
 
@@ -2638,19 +2715,19 @@
             
             // Update Shift Summaries
             if(document.getElementById('sumS1TotalPercent')) document.getElementById('sumS1TotalPercent').innerText = s1.totalPct + '%';
-            if(document.getElementById('sumS1TotalSub')) document.getElementById('sumS1TotalSub').innerText = `${s1.total} / ${requirement}`;
+            if(document.getElementById('sumS1TotalSub')) document.getElementById('sumS1TotalSub').innerText = `${s1.total} / ${s1.requirement}`;
             if(document.getElementById('sumS1PresentCount')) document.getElementById('sumS1PresentCount').innerText = s1.present;
-            if(document.getElementById('sumS1PresentSub')) document.getElementById('sumS1PresentSub').innerText = `${s1.present} / ${requirement}`;
+            if(document.getElementById('sumS1PresentSub')) document.getElementById('sumS1PresentSub').innerText = `${s1.present} / ${s1.requirement}`;
 
             if(document.getElementById('sumS2TotalPercent')) document.getElementById('sumS2TotalPercent').innerText = s2.totalPct + '%';
-            if(document.getElementById('sumS2TotalSub')) document.getElementById('sumS2TotalSub').innerText = `${s2.total} / ${requirement}`;
+            if(document.getElementById('sumS2TotalSub')) document.getElementById('sumS2TotalSub').innerText = `${s2.total} / ${s2.requirement}`;
             if(document.getElementById('sumS2PresentCount')) document.getElementById('sumS2PresentCount').innerText = s2.present;
-            if(document.getElementById('sumS2PresentSub')) document.getElementById('sumS2PresentSub').innerText = `${s2.present} / ${requirement}`;
+            if(document.getElementById('sumS2PresentSub')) document.getElementById('sumS2PresentSub').innerText = `${s2.present} / ${s2.requirement}`;
 
             if(document.getElementById('sumS3TotalPercent')) document.getElementById('sumS3TotalPercent').innerText = s3.totalPct + '%';
-            if(document.getElementById('sumS3TotalSub')) document.getElementById('sumS3TotalSub').innerText = `${s3.total} / ${requirement}`;
+            if(document.getElementById('sumS3TotalSub')) document.getElementById('sumS3TotalSub').innerText = `${s3.total} / ${s3.requirement}`;
             if(document.getElementById('sumS3PresentCount')) document.getElementById('sumS3PresentCount').innerText = s3.present;
-            if(document.getElementById('sumS3PresentSub')) document.getElementById('sumS3PresentSub').innerText = `${s3.present} / ${requirement}`;
+            if(document.getElementById('sumS3PresentSub')) document.getElementById('sumS3PresentSub').innerText = `${s3.present} / ${s3.requirement}`;
 
             if(document.getElementById('sumBreak')) document.getElementById('sumBreak').innerText = breakCount;
             if(document.getElementById('sumLongBreak')) document.getElementById('sumLongBreak').innerText = longBreakCount;
