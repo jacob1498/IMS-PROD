@@ -987,6 +987,14 @@
                 sideAttSub.classList.toggle('hidden', tab !== 'home' || !isAttActive);
             }
 
+            // Reset Search state when navigating via footer
+            const searchOverlay = document.getElementById('globalSearchOverlay');
+            if (searchOverlay && searchOverlay.classList.contains('show')) {
+                searchOverlay.classList.remove('show');
+                const searchInput = document.getElementById('globalSearchInput');
+                if (searchInput) searchInput.value = '';
+            }
+
             // Update Header Title
             const titles = { 
                 home: 'Home', 
@@ -1411,12 +1419,6 @@
             const header = document.querySelector('header');
             if (header) header.style.display = isSearching ? 'none' : 'block';
 
-            const homeView = document.getElementById('homeView');
-            const summarySection = document.getElementById('summarySection');
-            const reportsSection = document.getElementById('reportsSection');
-            const scheduleSection = document.getElementById('scheduleSection');
-            const searchResultsSection = document.getElementById('searchResultsSection');
-            
             const checkinUI = document.querySelector('#checkinSubSection .scan-area');
             const checkinH2 = document.querySelector('#checkinSubSection h2');
             const historyUI = document.querySelector('#historySubSection .input-group');
@@ -1425,21 +1427,24 @@
             const footerNav = document.querySelector('.footer-nav');
             const mainTabGroups = document.querySelectorAll('.tab-group');
 
-            // Visibility toggles for "Clean View" during search
-            if (homeView) homeView.classList.toggle('hidden', isSearching);
-            if (summarySection) summarySection.classList.toggle('hidden', isSearching);
-            if (reportsSection) reportsSection.classList.toggle('hidden', isSearching);
-            if (scheduleSection) scheduleSection.classList.toggle('hidden', isSearching);
-            
-            // Only show search results section if searching AND there is text in the search input
-            if (searchResultsSection) searchResultsSection.classList.toggle('hidden', !isSearching || globalSearch === '');
+            // If searching, hide main views to show results clearly
+            if (isSearching) {
+                ['homeView', 'summarySection', 'reportsSection', 'scheduleSection'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.add('hidden');
+                });
+                const resSec = document.getElementById('searchResultsSection');
+                if (resSec) resSec.classList.toggle('hidden', globalSearch === '');
+            }
 
             if (checkinUI) checkinUI.style.display = (isSearching || isMobile) ? 'none' : 'block';
             if (checkinH2) checkinH2.style.display = isSearching ? 'none' : 'block';
             if (historyUI) historyUI.style.display = isSearching ? 'none' : 'flex';
             if (historyH2) historyH2.style.display = isSearching ? 'none' : 'block';
             if (registerUI) registerUI.style.display = isSearching ? 'none' : 'flex';
-            if (footerNav) footerNav.style.visibility = 'visible';
+            
+            // Ensure footer stays visible so user can exit search or navigate
+            if (footerNav) footerNav.style.display = 'flex';
             
             mainTabGroups.forEach(tg => tg.style.display = isSearching ? 'none' : '');
 
@@ -1501,32 +1506,6 @@
                     </div>`;
             }
 
-            // Render dedicated search results if active
-            if (isSearching) {
-                const results = [
-                    ...checkedInMembers.map(m => ({ ...m, type: 'Present' })),
-                    ...checkedOutMembers.map(m => ({ ...m, type: 'Timed Out' })),
-                    ...filteredRegister.map(m => ({ ...m, type: 'User' }))
-                ];
-                const uniqueResults = Array.from(new Set(results.map(r => r.userId))).map(id => results.find(r => r.userId === id));
-                const globalSearchResults = document.getElementById('globalSearchResults');
-                globalSearchResults.innerHTML = uniqueResults.map(m => `
-                    <li>
-                        <div class="col-info">
-                            <div style="font-size:0.65rem; color:var(--primary); font-weight:800; text-transform:uppercase">${m.type}</div>
-                            ${m.name}
-                        </div>
-                        <div class="mobile-meta-row">
-                            <span class="col-role">${m.role || '--'}</span>
-                            <span style="font-size:0.7rem; color:var(--text-light)">ID: ${m.userId}</span>
-                        </div>
-                        <div class="col-actions">
-                            <button class="btn-action-sm details" onclick="showMemberDetails(${m.index})" title="View Details"><span class="material-symbols-outlined">info</span></button>
-                        </div>
-                    </li>
-                `).join('') || `<div class="empty-state">No results found for "${globalSearch}"</div>`;
-            }
-
             // Render History List (Checked-out view)
             const checkedOutMembers = state.members
                 .map((m, i) => ({ ...m, index: i }))
@@ -1580,6 +1559,34 @@
                                 Load More (${checkedOutMembers.length - historyLimit} remaining)
                             </button>
                         </div>`;
+                }
+            }
+
+            // Render Global Search Results (Moved to end to ensure all filtered lists are defined)
+            if (isSearching && globalSearch !== '') {
+                const results = [
+                    ...checkedInMembers.map(m => ({ ...m, type: 'Present' })),
+                    ...checkedOutMembers.map(m => ({ ...m, type: 'Timed Out' })),
+                    ...filteredRegister.map(m => ({ ...m, type: 'User' }))
+                ];
+                const uniqueResults = Array.from(new Set(results.map(r => r.userId))).map(id => results.find(r => r.userId === id));
+                const globalSearchResults = document.getElementById('globalSearchResults');
+                if (globalSearchResults) {
+                    globalSearchResults.innerHTML = uniqueResults.map(m => `
+                        <li>
+                            <div class="col-info">
+                                <div style="font-size:0.65rem; color:var(--primary); font-weight:800; text-transform:uppercase">${m.type}</div>
+                                ${m.name}
+                            </div>
+                            <div class="mobile-meta-row">
+                                <span class="col-role">${m.role || '--'}</span>
+                                <span style="font-size:0.7rem; color:var(--text-light)">ID: ${m.userId}</span>
+                            </div>
+                            <div class="col-actions">
+                                <button class="btn-action-sm details" onclick="showMemberDetails(${m.index})" title="View Details"><span class="material-symbols-outlined">info</span></button>
+                            </div>
+                        </li>
+                    `).join('') || `<div class="empty-state">No results found for "${globalSearch}"</div>`;
                 }
             }
 
