@@ -2353,6 +2353,9 @@
                         <button class="btn-action-sm details" onclick="showMemberDetails(${m.index})" title="View Details">
                             <span class="material-symbols-outlined">info</span>
                         </button>
+                        <button class="btn-action-sm" onclick="resetAttendance(${m.index})" style="color:var(--danger)" title="Reset Attendance Record">
+                            <span class="material-symbols-outlined">restart_alt</span>
+                        </button>
                     </div>
                 </li>
             `).join('') : `<div class="empty-state">${globalSearch ? 'No matching members found.' : 'No one checked in yet. Scan ID to start.'}</div>`;
@@ -2407,6 +2410,9 @@
                         <div class="col-actions">
                             <button class="btn-action-sm details" onclick="showMemberDetails(${m.index})" title="View Details">
                                 <span class="material-symbols-outlined">info</span>
+                            </button>
+                            <button class="btn-action-sm" onclick="resetAttendance(${m.index})" style="color:var(--danger)" title="Reset Attendance Record">
+                                <span class="material-symbols-outlined">restart_alt</span>
                             </button>
                         </div>
                     </li>
