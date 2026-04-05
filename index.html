@@ -1085,6 +1085,7 @@
                             <div style="flex: 0.8 1 0%;">Shift</div>
                             <div style="flex: 1.2 1 0%;">Shift Time</div>
                             <div style="flex: 0.8 1 0%; text-align: right; padding-right: 5px;">Req. HC</div>
+                            <div style="flex: 0.6 1 0%; text-align: right;">Actions</div>
                         </div>
                         <ul id="scheduleList" style="padding-bottom: 0;"></ul>
                     </div>
@@ -1163,6 +1164,42 @@
                     </div>
                     <button onclick="saveQuantityData()" style="width: 100%; margin-top: 10px; padding: 12px; background: var(--success);">
                         <span class="material-symbols-outlined">check_circle</span> Finish Cycle Count
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule Edit Modal -->
+        <div id="scheduleModal" class="modal-overlay hidden" onclick="closeScheduleModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>Edit Schedule Entry</h3>
+                    <button onclick="closeScheduleModal()" style="background:none; color:var(--text-light); padding:0"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="input-group" style="flex-direction: column; gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Date</label>
+                        <input type="text" id="schedDateInput">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Area</label>
+                        <input type="text" id="schedAreaInput">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Shift</label>
+                        <input type="text" id="schedShiftInput">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Shift Time</label>
+                        <input type="text" id="schedTimeInput">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Required HC</label>
+                        <input type="number" id="schedHcInput">
+                    </div>
+                    <button onclick="saveScheduleUpdate()" style="width: 100%; margin-top: 10px; padding: 12px;">
+                        <span class="material-symbols-outlined">save</span>
+                        Update Schedule
                     </button>
                 </div>
             </div>
@@ -1993,6 +2030,48 @@
             reader.readAsText(file);
         }
 
+        let currentEditingSchedId = null;
+        function openEditScheduleModal(id) {
+            const sched = state.schedules.find(s => s.id === id);
+            if (!sched) return;
+            currentEditingSchedId = id;
+            document.getElementById('schedDateInput').value = sched.date;
+            document.getElementById('schedAreaInput').value = sched.area;
+            document.getElementById('schedShiftInput').value = sched.shift;
+            document.getElementById('schedTimeInput').value = sched.time;
+            document.getElementById('schedHcInput').value = sched.hc;
+            document.getElementById('scheduleModal').classList.remove('hidden');
+        }
+
+        function closeScheduleModal() {
+            document.getElementById('scheduleModal').classList.add('hidden');
+            currentEditingSchedId = null;
+        }
+
+        async function saveScheduleUpdate() {
+            if (!currentEditingSchedId || !supabaseClient) return;
+            const updates = {
+                date: document.getElementById('schedDateInput').value,
+                area: document.getElementById('schedAreaInput').value,
+                shift: document.getElementById('schedShiftInput').value,
+                time: document.getElementById('schedTimeInput').value,
+                hc: parseInt(document.getElementById('schedHcInput').value) || 0
+            };
+            const { error } = await supabaseClient.from('schedules').update(updates).eq('id', currentEditingSchedId);
+            if (error) showToast(error.message, "error");
+            else {
+                showToast("Schedule updated!", "success");
+                closeScheduleModal();
+            }
+        }
+
+        async function deleteSchedule(id) {
+            if (!confirm("Delete this schedule entry?")) return;
+            const { error } = await supabaseClient.from('schedules').delete().eq('id', id);
+            if (error) showToast(error.message, "error");
+            else showToast("Schedule deleted.", "info");
+        }
+
         function showMemberDetails(index) {
             const m = state.members[index];
             const body = document.getElementById('modalBody');
@@ -2372,6 +2451,10 @@
                             <div style="flex: 0.8 1 0%;">${s.shift}</div>
                             <div style="flex: 1.2 1 0%;">${s.time}</div>
                             <div style="flex: 0.8 1 0%; justify-content: flex-end; padding-right: 5px; font-weight: 800; color: var(--primary);">${s.hc}</div>
+                            <div style="flex: 0.6 1 0%; display: flex; gap: 4px; justify-content: flex-end; padding-right: 5px;">
+                                <button class="btn-action-sm" onclick="openEditScheduleModal('${s.id}')"><span class="material-symbols-outlined" style="font-size:16px">edit</span></button>
+                                <button class="btn-action-sm" onclick="deleteSchedule('${s.id}')" style="color:var(--danger)"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>
+                            </div>
                         </li>
                     `).join('');
                 } else {
