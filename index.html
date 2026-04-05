@@ -29,19 +29,16 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 600px;
             margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
+            display: block;
         }
 
         @media (max-width: 768px) {
-            .container { grid-template-columns: 1fr; }
+            .container { padding: 10px; }
         }
 
         header {
-            grid-column: 1 / -1;
             text-align: center;
             margin-bottom: 20px;
         }
@@ -56,19 +53,19 @@
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         }
 
-        .auth-tabs {
+        .tab-group {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
         }
 
-        .auth-tabs button {
+        .tab-group button {
             flex: 1;
             background: #e2e8f0;
             color: var(--text);
         }
 
-        .auth-tabs button.active {
+        .tab-group button.active {
             background: var(--primary);
             color: white;
         }
@@ -176,7 +173,7 @@
     <!-- Auth Section -->
     <div id="authView" class="auth-container">
         <h2 id="authTitle" style="border:none; text-align:center">Welcome Back</h2>
-        <div class="auth-tabs">
+        <div class="tab-group">
             <button id="loginTab" class="active" onclick="toggleAuthMode('login')">Login</button>
             <button id="signupTab" onclick="toggleAuthMode('signup')">Sign Up</button>
         </div>
@@ -200,8 +197,13 @@
         </header>
 
         <div class="container">
+            <div class="tab-group">
+                <button id="attendanceTabBtn" class="active" onclick="switchDashboardTab('attendance')">Attendance</button>
+                <button id="productivityTabBtn" onclick="switchDashboardTab('productivity')">Productivity</button>
+            </div>
+
             <!-- Attendance Section -->
-            <div class="card">
+            <div id="attendanceSection" class="card">
                 <h2>Attendance</h2>
                 <div class="input-group">
                     <input type="text" id="memberInput" placeholder="Enter name..." onkeyup="if(event.key==='Enter') addMember()">
@@ -211,7 +213,7 @@
             </div>
 
             <!-- Productivity Section -->
-            <div class="card">
+            <div id="productivitySection" class="card hidden">
                 <h2>Productivity Tracker</h2>
                 <div class="progress-container">
                     <div id="progress-bar"></div>
@@ -278,6 +280,13 @@
             document.getElementById('authBtn').innerText = mode === 'login' ? 'Sign In' : 'Sign Up';
             document.getElementById('loginTab').classList.toggle('active', mode === 'login');
             document.getElementById('signupTab').classList.toggle('active', mode === 'signup');
+        }
+
+        function switchDashboardTab(tab) {
+            document.getElementById('attendanceSection').classList.toggle('hidden', tab !== 'attendance');
+            document.getElementById('productivitySection').classList.toggle('hidden', tab !== 'productivity');
+            document.getElementById('attendanceTabBtn').classList.toggle('active', tab === 'attendance');
+            document.getElementById('productivityTabBtn').classList.toggle('active', tab === 'productivity');
         }
 
         // Monitor Auth State
