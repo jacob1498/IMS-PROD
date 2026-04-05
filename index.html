@@ -823,7 +823,7 @@
                 <span class="material-symbols-outlined">dashboard</span>
                 <span>Dashboard</span>
             </button>
-            <button class="footer-nav-item" onclick="toggleSearchOverlay()">
+            <button class="footer-nav-item" onclick="toggleSearchOverlay()" data-tab="search">
                 <span class="material-symbols-outlined">search</span>
                 <span>Search</span>
             </button>
@@ -1427,6 +1427,13 @@
             const footerNav = document.querySelector('.footer-nav');
             const mainTabGroups = document.querySelectorAll('.tab-group');
 
+            // Update footer active state during search
+            if (footerNav) {
+                document.querySelectorAll('.footer-nav-item').forEach(btn => {
+                    if (isSearching) btn.classList.toggle('active', btn.dataset.tab === 'search');
+                });
+            }
+
             // If searching, hide main views to show results clearly
             if (isSearching) {
                 ['homeView', 'summarySection', 'reportsSection', 'scheduleSection'].forEach(id => {
@@ -1450,6 +1457,13 @@
 
             const historyFromDate = state.historyFilterFromDate;
             const historyToDate = state.historyFilterToDate;
+
+            // Filter Register Members (Moved up so it's available for global search results)
+            const filteredRegister = state.members
+                .map((m, i) => ({ ...m, index: i }))
+                .filter(m => 
+                    (m.name.toLowerCase().includes(globalSearch) || m.userId.toLowerCase().includes(globalSearch))
+                );
 
             // Render Attendance List (Check-in view)
             const checkedInMembers = state.members
@@ -1599,12 +1613,6 @@
                         <div class="col-info">Full Name</div>
                         <div class="col-actions-header">Action</div>
                     </div>`;
-
-                const filteredRegister = state.members
-                    .map((m, i) => ({ ...m, index: i }))
-                    .filter(m => 
-                        (m.name.toLowerCase().includes(globalSearch) || m.userId.toLowerCase().includes(globalSearch))
-                    );
 
                 const registerLimit = displayLimits.register;
                 registerList.innerHTML = filteredRegister.length ? registerHeader + filteredRegister.slice(0, registerLimit).map((m) => `
