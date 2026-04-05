@@ -807,8 +807,20 @@
 
             <!-- Dashboard Summary Section -->
             <div id="summarySection" class="hidden">
-                <h2>Shift Performance Summary</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <h2>Dashboard Summary</h2>
+                <div class="tab-group" style="margin-bottom: 20px;">
+                    <button id="shiftSummaryTabBtn" class="active" onclick="switchSummarySubTab('shift')">
+                        <span class="material-symbols-outlined">groups</span>
+                        Shift Attendance
+                    </button>
+                    <button id="cycleSummaryTabBtn" onclick="switchSummarySubTab('cycle')">
+                        <span class="material-symbols-outlined">query_stats</span>
+                        Cycle Count Stats
+                    </button>
+                </div>
+
+                <!-- Shift Attendance Cards -->
+                <div id="shiftSummaryCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
                     <!-- Shift 1 -->
                     <div class="card" style="text-align: center; border-top: 4px solid var(--primary);">
                         <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">1st Shift Total</div>
@@ -856,6 +868,31 @@
                         <div style="font-size: 0.75rem; color: var(--danger); font-weight: 600;">> 40 mins</div>
                     </div>
                 </div>
+
+                <!-- Cycle Count Performance Cards -->
+                <div id="cycleSummaryCards" class="hidden" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
+                        <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Active Counters</div>
+                        <div id="sumCycleActive" style="font-size: 2.2rem; font-weight: 800; margin: 8px 0;">0</div>
+                        <div style="font-size: 0.75rem; color: var(--text-light);">Currently Counting</div>
+                    </div>
+                    <div class="card" style="text-align: center; border-top: 4px solid var(--text-light);">
+                        <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Inactive Counters</div>
+                        <div id="sumCycleInactive" style="font-size: 2.2rem; font-weight: 800; margin: 8px 0;">0</div>
+                        <div style="font-size: 0.75rem; color: var(--text-light);">No Active Session</div>
+                    </div>
+                    <div class="card" style="text-align: center; border-top: 4px solid var(--danger);">
+                        <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Long Sessions</div>
+                        <div id="sumCycleLong" style="font-size: 2.2rem; font-weight: 800; margin: 8px 0;">0</div>
+                        <div style="font-size: 0.75rem; color: var(--danger); font-weight: 600;">> 1 Hour Counting</div>
+                    </div>
+                    <div class="card" style="text-align: center; border-top: 4px solid #eab308;">
+                        <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Counters on Break</div>
+                        <div id="sumCycleBreak" style="font-size: 2.2rem; font-weight: 800; margin: 8px 0;">0</div>
+                        <div style="font-size: 0.75rem; color: var(--text-light);">From Attendance</div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <h3 style="margin-top:0">Insights</h3>
                     <p style="font-size: 0.9rem; color: var(--text-light);">
@@ -1082,6 +1119,7 @@
         };
 
         let activeProductivitySubTab = 'active';
+        let activeSummarySubTab = 'shift';
         // Runtime display limits for pagination/load more
         let displayLimits = { checkin: 10, history: 10, register: 10, prodHistory: 10 };
 
@@ -1218,6 +1256,11 @@
             document.getElementById('historyProdTabBtn').classList.toggle('active', tab === 'history');
             document.getElementById('productivityInputGroup').classList.toggle('hidden', tab !== 'active');
             document.getElementById('prodHistoryControls').classList.toggle('hidden', tab !== 'history');
+            render();
+        }
+
+        function switchSummarySubTab(tab) {
+            activeSummarySubTab = tab;
             render();
         }
 
@@ -1779,6 +1822,17 @@
             const taskList = document.getElementById('taskList');
             const progressBar = document.getElementById('progress-bar');
 
+            // Update Summary Tab Visibility
+            const shiftSumCards = document.getElementById('shiftSummaryCards');
+            const cycleSumCards = document.getElementById('cycleSummaryCards');
+            const shiftBtn = document.getElementById('shiftSummaryTabBtn');
+            const cycleBtn = document.getElementById('cycleSummaryTabBtn');
+
+            if (shiftSumCards) shiftSumCards.classList.toggle('hidden', activeSummarySubTab !== 'shift');
+            if (cycleSumCards) cycleSumCards.classList.toggle('hidden', activeSummarySubTab !== 'cycle');
+            if (shiftBtn) shiftBtn.classList.toggle('active', activeSummarySubTab === 'shift');
+            if (cycleBtn) cycleBtn.classList.toggle('active', activeSummarySubTab === 'cycle');
+
             // Global search logic
             const searchInput = document.getElementById('globalSearchInput');
             const globalSearch = searchInput ? searchInput.value.toLowerCase() : '';
@@ -2160,6 +2214,30 @@
 
             if(document.getElementById('sumBreak')) document.getElementById('sumBreak').innerText = breakCount;
             if(document.getElementById('sumLongBreak')) document.getElementById('sumLongBreak').innerText = longBreakCount;
+
+            // Update Cycle Count Dashboard Stats
+            const counterRoles = ['Direct Counter', 'Back up'];
+            const allCounters = state.members.filter(m => counterRoles.includes(m.role));
+            
+            const activeTasks = state.tasks.filter(t => !t.completed);
+            const activeCounterIds = new Set(activeTasks.map(t => t.userId));
+            
+            const totalActiveCounters = allCounters.filter(m => activeCounterIds.has(m.userId)).length;
+            const totalInactiveCounters = allCounters.length - totalActiveCounters;
+            
+            const longCycleCount = activeTasks.filter(t => {
+                const m = allCounters.find(mem => mem.userId === t.userId);
+                if (!m || !t.startTime) return false;
+                const diff = (now - new Date(t.startTime)) / 3600000; // hours
+                return diff > 1;
+            }).length;
+
+            const countersOnBreak = allCounters.filter(m => m.status === 'On Break').length;
+
+            if(document.getElementById('sumCycleActive')) document.getElementById('sumCycleActive').innerText = totalActiveCounters;
+            if(document.getElementById('sumCycleInactive')) document.getElementById('sumCycleInactive').innerText = totalInactiveCounters;
+            if(document.getElementById('sumCycleLong')) document.getElementById('sumCycleLong').innerText = longCycleCount;
+            if(document.getElementById('sumCycleBreak')) document.getElementById('sumCycleBreak').innerText = countersOnBreak;
         }
 
         // Handle scroll events for sticky UI and back-to-top button
