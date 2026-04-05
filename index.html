@@ -1742,7 +1742,9 @@
                 updates.timeOut = timeStr;
             }
 
-            supabaseClient.from('members').update(updates).eq('userid', pendingUserId).then(() => {
+            supabaseClient.from('members').update(updates).eq('userid', pendingUserId)
+            .then(({ error }) => {
+                if (error) throw error;
                 showToast(`${action} successful!`, "success");
             });
             
@@ -2102,6 +2104,9 @@
                 userid: pendingUserId,
                 userName: member.name,
                 startTime: new Date().toISOString()
+            })
+            .then(({ error }) => {
+                if (error) throw error;
             });
             
             showToast("Cycle count started!", "success");
@@ -2136,7 +2141,10 @@
                 skuCount: sku || 0,
                 endTime: new Date().toISOString(),
                 completed: true
-            }).eq('id', task.id);
+            }).eq('id', task.id)
+            .then(({ error }) => {
+                if (error) throw error;
+            });
 
             showToast("Cycle count finished!", "success");
             closeQuantityModal();
