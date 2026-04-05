@@ -601,11 +601,40 @@
             text-align: center;
             border-top: 1px solid var(--border);
         }
+
+        /* Loading Spinner */
+        .loader-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(2px);
+        }
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid var(--primary);
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
 
     <div id="toastContainer" class="toast-container"></div>
+    <div id="globalLoader" class="loader-overlay">
+        <div class="loader"></div>
+    </div>
 
     <!-- Auth Section -->
     <div id="authView" class="auth-container">
@@ -706,7 +735,12 @@
         <div id="realtimeClock" class="live-clock"></div>
 
         <header>
-            <h1>Team Dashboard</h1>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+                <h1>Team Dashboard</h1>
+                <button onclick="manualRefresh()" class="btn-action-sm" style="color: var(--primary); background: var(--card); border: 1px solid var(--border); border-radius: 50%; width: 36px; height: 36px; box-shadow: var(--shadow);" title="Refresh Data">
+                    <span class="material-symbols-outlined">refresh</span>
+                </button>
+            </div>
         </header>
 
         <div class="container">
@@ -1228,6 +1262,16 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
+        function toggleLoader(show) {
+            const loader = document.getElementById('globalLoader');
+            if (loader) loader.style.display = show ? 'flex' : 'none';
+        }
+
+        async function manualRefresh() {
+            await fetchInitialData(true);
+            showToast("Data updated", "success");
+        }
+
         function playAlertSound() {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = ctx.createOscillator();
@@ -1438,15 +1482,23 @@
         });
 
         // Database Sync Logic
-        async function fetchInitialData() {
+        async function fetchInitialData(showLoader = false) {
             if (!supabaseClient) return;
+            if (showLoader) toggleLoader(true);
             
-            const { data: members } = await supabaseClient.from('members').select('*');
-            const { data: tasks } = await supabaseClient.from('tasks').select('*');
-            
-            state.members = members || [];
-            state.tasks = tasks || [];
-            render();
+            try {
+                const { data: members } = await supabaseClient.from('members').select('*');
+                const { data: tasks } = await supabaseClient.from('tasks').select('*');
+                
+                state.members = members || [];
+                state.tasks = tasks || [];
+                render();
+            } catch (err) {
+                console.error("Fetch error:", err);
+                if (showLoader) showToast("Failed to refresh data", "error");
+            } finally {
+                if (showLoader) toggleLoader(false);
+            }
         }
 
         function initRealtime() {
@@ -2050,32 +2102,48 @@
 
         function exportAttendanceToExcel() {
             if (state.members.length === 0) return showToast("No attendance data found!", "error");
-            const headers = ["User ID", "Name", "Role", "Status", "Date", "Shift", "Time In", "Break Out", "Break In", "Time Out"];
-            const csvRows = [headers.join(",")];
-            state.members.forEach(m => {
-                const row = [m.userid, m.name, m.role, m.status, m.date, m.shift, m.timein, m.breakout, m.breakin, m.timeout];
-                csvRows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
-            });
-            downloadFile(csvRows.join("\n"), `Attendance_Report_${new Date().toISOString().slice(0,10)}.csv`);
-            showToast("Attendance report downloaded!", "success");
+            toggleLoader(true);
+            
+            setTimeout(() => {
+                try {
+                    const headers = ["User ID", "Name", "Role", "Status", "Date", "Shift", "Time In", "Break Out", "Break In", "Time Out"];
+                    const csvRows = [headers.join(",")];
+                    state.members.forEach(m => {
+                        const row = [m.userid, m.name, m.role, m.status, m.date, m.shift, m.timein, m.breakout, m.breakin, m.timeout];
+                        csvRows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
+                    });
+                    downloadFile(csvRows.join("\n"), `Attendance_Report_${new Date().toISOString().slice(0,10)}.csv`);
+                    showToast("Attendance report downloaded!", "success");
+                } finally {
+                    toggleLoader(false);
+                }
+            }, 100);
         }
 
         function exportProductivityToExcel() {
             if (state.tasks.length === 0) return showToast("No productivity data found!", "error");
-            const headers = ["Location", "Bin Type", "User ID", "User Name", "Status", "Start Time", "End Time", "Duration (mins)", "Qty", "SKU Count"];
-            const csvRows = [headers.join(",")];
-            state.tasks.forEach(t => {
-                const duration = calculateDuration(t.starttime, t.endtime).replace('m', '');
-                const row = [
-                    t.location, t.bintype, t.userid, t.username, t.completed ? 'Completed' : 'Active',
-                    t.starttime ? new Date(t.starttime).toLocaleString() : '',
-                    t.endtime ? new Date(t.endtime).toLocaleString() : '',
-                    duration, t.qty || 0, t.skucount || 0
-                ];
-                csvRows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
-            });
-            downloadFile(csvRows.join("\n"), `Productivity_Report_${new Date().toISOString().slice(0,10)}.csv`);
-            showToast("Productivity report downloaded!", "success");
+            toggleLoader(true);
+
+            setTimeout(() => {
+                try {
+                    const headers = ["Location", "Bin Type", "User ID", "User Name", "Status", "Start Time", "End Time", "Duration (mins)", "Qty", "SKU Count"];
+                    const csvRows = [headers.join(",")];
+                    state.tasks.forEach(t => {
+                        const duration = calculateDuration(t.starttime, t.endtime).replace('m', '');
+                        const row = [
+                            t.location, t.bintype, t.userid, t.username, t.completed ? 'Completed' : 'Active',
+                            t.starttime ? new Date(t.starttime).toLocaleString() : '',
+                            t.endtime ? new Date(t.endtime).toLocaleString() : '',
+                            duration, t.qty || 0, t.skucount || 0
+                        ];
+                        csvRows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
+                    });
+                    downloadFile(csvRows.join("\n"), `Productivity_Report_${new Date().toISOString().slice(0,10)}.csv`);
+                    showToast("Productivity report downloaded!", "success");
+                } finally {
+                    toggleLoader(false);
+                }
+            }, 100);
         }
 
         function downloadFile(content, fileName) {
