@@ -399,14 +399,10 @@
             #mobileMenuBtn { display: flex; }
             
             header { margin-bottom: 20px; }
+            header { margin-top: 0; padding-top: 15px; margin-bottom: 20px; }
             header h1 { font-size: 1.5rem; margin: 0; color: var(--text); }
             
-            .live-clock { 
-                font-size: 0.7rem; 
-                top: 12px; 
-                right: 15px;
-                max-width: 160px;
-            }
+            .live-clock { display: none !important; }
 
             /* Mobile Card List Styling */
             .table-header { display: none; }
@@ -745,7 +741,7 @@
         <div id="registerModal" class="modal-overlay hidden" onclick="closeRegisterModal()">
             <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header">
-                    <h3>New Registration</h3>
+                    <h3 id="registerModalTitle">New Registration</h3>
                     <button onclick="closeRegisterModal()" style="background:none; color:var(--text-light); padding:0"><span class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="input-group" style="flex-direction: column; gap: 15px;">
@@ -767,7 +763,7 @@
                             <option value="Back up">Back up</option>
                         </select>
                     </div>
-                    <button onclick="addMember()" style="width: 100%; margin-top: 10px; padding: 12px;">
+                    <button id="saveMemberBtn" onclick="saveMember()" style="width: 100%; margin-top: 10px; padding: 12px;">
                         <span class="material-symbols-outlined">how_to_reg</span>
                         Save Member
                     </button>
@@ -815,6 +811,14 @@
             historyFilterToDate: '',
             tasks: []
         };
+
+        // Runtime display limits for pagination/load more
+        let displayLimits = { checkin: 10, history: 10, register: 10 };
+
+        function loadMore(type) {
+            displayLimits[type] += 10;
+            render();
+        }
 
         // Auth Logic
         async function handleAuth() {
@@ -880,6 +884,10 @@
             document.getElementById('historySubTabBtn').classList.toggle('active', tab === 'history');
             document.getElementById('registerSubTabBtn').classList.toggle('active', tab === 'register');
 
+            // Reset display limits when switching sub-tabs for a fresh view
+            displayLimits = { checkin: 10, history: 10, register: 10 };
+            render();
+
             // Sync Sidebar Tabs
             if (document.getElementById('side-checkinSubTabBtn')) {
                 document.getElementById('side-checkinSubTabBtn').classList.toggle('active', tab === 'checkin');
@@ -940,9 +948,33 @@
         }
 
 
+        let currentEditingIndex = -1;
+
         function openRegisterModal() {
+            currentEditingIndex = -1;
+            document.getElementById('registerModalTitle').innerText = "New Registration";
+            document.getElementById('saveMemberBtn').innerHTML = '<span class="material-symbols-outlined">how_to_reg</span> Save Member';
+            
+            document.getElementById('memberIdInput').value = '';
+            document.getElementById('memberNameInput').value = '';
+            document.getElementById('memberRoleInput').value = '';
+            
             document.getElementById('registerModal').classList.remove('hidden');
             document.getElementById('memberIdInput').focus();
+        }
+
+        function openEditModal(index) {
+            currentEditingIndex = index;
+            const m = state.members[index];
+            
+            document.getElementById('registerModalTitle').innerText = "Edit Member";
+            document.getElementById('saveMemberBtn').innerHTML = '<span class="material-symbols-outlined">edit</span> Update Member';
+            
+            document.getElementById('memberIdInput').value = m.userId;
+            document.getElementById('memberNameInput').value = m.name;
+            document.getElementById('memberRoleInput').value = m.role;
+            
+            document.getElementById('registerModal').classList.remove('hidden');
         }
 
         function closeRegisterModal() {
@@ -950,31 +982,38 @@
         }
 
         // Attendance Logic
-        function addMember() {
+        function saveMember() {
             const idInput = document.getElementById('memberIdInput');
             const nameInput = document.getElementById('memberNameInput');
             const roleInput = document.getElementById('memberRoleInput');
             
             if (!idInput.value || !nameInput.value || !roleInput.value) return alert("Please fill all registration fields!");
 
-            // Prevent duplicate IDs
-            if (state.members.some(m => m.userId === idInput.value)) {
+            // Duplicate check logic
+            const existingIndex = state.members.findIndex(m => m.userId === idInput.value);
+            if (existingIndex !== -1 && existingIndex !== currentEditingIndex) {
                 alert("This User ID is already registered!");
                 return;
             }
 
-            state.members.push({
-                userId: idInput.value,
-                name: nameInput.value,
-                role: roleInput.value,
-                status: 'Away',
-                date: '--',
-                shift: '--',
-                timeIn: '--',
-                breakOut: '--',
-                breakIn: '--',
-                timeOut: '--'
-            });
+            if (currentEditingIndex === -1) {
+                state.members.push({
+                    userId: idInput.value,
+                    name: nameInput.value,
+                    role: roleInput.value,
+                    status: 'Away',
+                    date: '--',
+                    shift: '--',
+                    timeIn: '--',
+                    breakOut: '--',
+                    breakIn: '--',
+                    timeOut: '--'
+                });
+            } else {
+                state.members[currentEditingIndex].userId = idInput.value;
+                state.members[currentEditingIndex].name = nameInput.value;
+                state.members[currentEditingIndex].role = roleInput.value;
+            }
 
             idInput.value = '';
             nameInput.value = '';
@@ -1226,7 +1265,8 @@
                     <div class="col-ts">Out</div>
                 </div>`;
 
-            attendanceList.innerHTML = checkedInMembers.length ? checkinHeader + checkedInMembers.map((m) => `
+            const checkinLimit = displayLimits.checkin;
+            attendanceList.innerHTML = checkedInMembers.length ? checkinHeader + checkedInMembers.slice(0, checkinLimit).map((m) => `
                 <li>
                     <div class="col-info">
                         ${m.name}
@@ -1249,6 +1289,15 @@
                     </div>
                 </li>
             `).join('') : `<div class="empty-state">${checkinSearch ? 'No matching members found.' : 'No one checked in yet. Scan ID to start.'}</div>`;
+
+            if (checkedInMembers.length > checkinLimit) {
+                attendanceList.innerHTML += `
+                    <div style="padding: 15px; text-align: center;">
+                        <button onclick="loadMore('checkin')" style="width: 100%; background: var(--bg); color: var(--primary); border: 1px solid var(--border); padding: 10px; font-size: 0.85rem; font-weight: 600;">
+                            Load More (${checkedInMembers.length - checkinLimit} remaining)
+                        </button>
+                    </div>`;
+            }
 
             // Render History List (Checked-out view)
             const checkedOutMembers = state.members
@@ -1274,7 +1323,8 @@
                 });
 
             if (historyList) {
-                historyList.innerHTML = checkedOutMembers.length ? checkinHeader + checkedOutMembers.map((m) => `
+                const historyLimit = displayLimits.history;
+                historyList.innerHTML = checkedOutMembers.length ? checkinHeader + checkedOutMembers.slice(0, historyLimit).map((m) => `
                     <li>
                         <div class="col-info">
                             ${m.name}
@@ -1294,6 +1344,15 @@
                         </div>
                     </li>
                 `).join('') : `<div class="empty-state">${historySearch ? 'No matching records found.' : 'No check-out records found for today.'}</div>`;
+
+                if (checkedOutMembers.length > historyLimit) {
+                    historyList.innerHTML += `
+                        <div style="padding: 15px; text-align: center;">
+                            <button onclick="loadMore('history')" style="width: 100%; background: var(--bg); color: var(--primary); border: 1px solid var(--border); padding: 10px; font-size: 0.85rem; font-weight: 600;">
+                                Load More (${checkedOutMembers.length - historyLimit} remaining)
+                            </button>
+                        </div>`;
+                }
             }
 
             // Render Register List (Management view)
@@ -1303,7 +1362,7 @@
                         <div class="col-id">User ID</div>
                         <div class="col-role">Role</div>
                         <div class="col-info">Full Name</div>
-                        <div style="width: 80px; text-align: right;">Action</div>
+                        <div class="col-actions-header">Action</div>
                     </div>`;
 
                 const filteredRegister = state.members
@@ -1312,21 +1371,37 @@
                         (m.name.toLowerCase().includes(registerSearch) || m.userId.toLowerCase().includes(registerSearch))
                     );
 
-                registerList.innerHTML = filteredRegister.length ? registerHeader + filteredRegister.map((m) => `
+                const registerLimit = displayLimits.register;
+                registerList.innerHTML = filteredRegister.length ? registerHeader + filteredRegister.slice(0, registerLimit).map((m) => `
                     <li>
                         <div class="col-id">${m.userId}</div>
                         <div class="col-role">${m.role || '--'}</div>
                         <div class="col-info">
                             <div style="font-weight:600; font-size:0.9rem">${m.name}</div>
                         </div>
-                        <div style="width: 80px; text-align: right;">
-                            <button onclick="deleteMember(${m.index})" style="background:none; color:var(--danger); padding:0; font-size:0.8rem">
-                                <span class="material-symbols-outlined" style="font-size:18px">delete</span>
-                                Remove
+                        <div class="mobile-meta-row">
+                            <span class="col-role">${m.role || '--'}</span>
+                            <span style="font-size:0.7rem; color:var(--text-light)">ID: ${m.userId}</span>
+                        </div>
+                        <div class="col-actions">
+                            <button class="btn-action-sm" onclick="openEditModal(${m.index})" title="Edit Member">
+                                <span class="material-symbols-outlined">edit</span>
+                            </button>
+                            <button class="btn-action-sm" onclick="deleteMember(${m.index})" style="color:var(--danger)" title="Remove Member">
+                                <span class="material-symbols-outlined">delete</span>
                             </button>
                         </div>
                     </li>
                 `).join('') : `<div class="empty-state">${registerSearch ? 'No matching members found.' : 'No members to manage.'}</div>`;
+
+                if (filteredRegister.length > registerLimit) {
+                    registerList.innerHTML += `
+                        <div style="padding: 15px; text-align: center;">
+                            <button onclick="loadMore('register')" style="width: 100%; background: var(--bg); color: var(--primary); border: 1px solid var(--border); padding: 10px; font-size: 0.85rem; font-weight: 600;">
+                                Load More (${filteredRegister.length - registerLimit} remaining)
+                            </button>
+                        </div>`;
+                }
             }
 
             // Render Tasks
