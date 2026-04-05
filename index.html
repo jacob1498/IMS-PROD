@@ -36,79 +36,6 @@
             display: block;
         }
 
-        @media (max-width: 768px) {
-            .container { padding: 10px; width: 100%; box-sizing: border-box; }
-            .user-info { flex-direction: column; text-align: center; gap: 10px; margin-top: 50px; }
-            .tab-group { display: none !important; }
-            #mobileMenuBtn { display: flex; }
-            
-            /* Enhanced Table to Card conversion */
-            .table-header { display: none; }
-            li { 
-                flex-direction: column; 
-                align-items: flex-start; 
-                padding: 18px; 
-                gap: 12px;
-                border: 1px solid var(--border);
-                border-radius: 12px;
-                margin-bottom: 16px;
-                background: var(--card);
-                box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            }
-            
-            /* Meta-data row for ID, Role, Shift, Date */
-            .col-id, .col-role, .col-date, .col-shift { 
-                display: inline-flex !important;
-                width: 100% !important; 
-                font-size: 0.7rem !important;
-                margin-right: 8px;
-                background: var(--bg);
-                padding: 2px 8px !important;
-                border-radius: 4px;
-                color: var(--text-light) !important;
-            }
-
-            .col-info { width: 100% !important; font-size: 1.1rem; margin: 4px 0; }
-            .col-status { width: auto !important; margin-bottom: 8px; }
-            
-            /* Timestamps in a 2x2 grid */
-            .col-ts { 
-                width: 48% !important; 
-                display: inline-flex !important;
-                flex-direction: column;
-                border: none !important;
-                padding: 8px !important;
-                background: #f8fafc;
-                border-radius: 6px;
-                margin: 1% !important;
-                box-sizing: border-box;
-            }
-            .col-ts::before { content: attr(title); font-weight: 800; font-size: 0.55rem; text-transform: uppercase; color: var(--primary); margin-bottom: 2px; }
-
-            /* Mobile Actions: Always show or make accessible */
-            .hover-actions {
-                position: static;
-                transform: none !important;
-                opacity: 1;
-                pointer-events: auto;
-                flex-direction: column;
-                flex-wrap: wrap;
-                width: 100%;
-                margin-top: 8px;
-                box-shadow: none;
-                padding: 0;
-                border: none;
-                background: transparent;
-                gap: 8px;
-            }
-            .hover-actions button { 
-                width: 100%; 
-                padding: 12px !important; 
-                font-size: 0.85rem !important;
-                justify-content: center;
-            }
-        }
-
         header {
             text-align: center;
             margin-bottom: 30px;
@@ -337,7 +264,7 @@
             position: fixed;
             top: 15px;
             left: 15px;
-            z-index: 1001;
+            z-index: 1050;
             background: var(--primary);
             color: white;
             width: 45px;
@@ -434,60 +361,83 @@
             padding: 20px;
             border-top: 1px solid var(--border);
         }
+
+        /* Media Queries should always be at the bottom to correctly override base styles */
+        @media (max-width: 768px) {
+            .container { padding: 10px; width: 100%; box-sizing: border-box; }
+            .user-info { flex-direction: column; text-align: center; gap: 10px; margin-top: 60px; }
+            .tab-group { display: none !important; }
+            #mobileMenuBtn { display: flex; }
+            
+            /* Enhanced Table to Card conversion */
+            .table-header { display: none; }
+            li { 
+                flex-direction: column; 
+                align-items: flex-start; 
+                padding: 18px; 
+                gap: 12px;
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                margin-bottom: 16px;
+                background: var(--card);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            }
+            
+            /* Meta-data row for ID, Role, Shift, Date */
+            .col-id, .col-role, .col-date, .col-shift { 
+                display: inline-flex !important;
+                width: 100% !important; 
+                font-size: 0.7rem !important;
+                margin-right: 8px;
+                background: var(--bg);
+                padding: 2px 8px !important;
+                border-radius: 4px;
+                color: var(--text-light) !important;
+            }
+
+            .col-info { width: 100% !important; font-size: 1.1rem; margin: 4px 0; }
+            .col-status { width: auto !important; margin-bottom: 8px; }
+            
+            /* Timestamps in a 2x2 grid */
+            .col-ts { 
+                width: 48% !important; 
+                display: inline-flex !important;
+                flex-direction: column;
+                border: none !important;
+                padding: 8px !important;
+                background: #f8fafc;
+                border-radius: 6px;
+                margin: 1% !important;
+                box-sizing: border-box;
+            }
+            .col-ts::before { content: attr(title); font-weight: 800; font-size: 0.55rem; text-transform: uppercase; color: var(--primary); margin-bottom: 2px; }
+
+            /* Mobile Actions: Always show or make accessible */
+            .hover-actions {
+                position: static;
+                transform: none !important;
+                opacity: 1;
+                pointer-events: auto;
+                flex-direction: column;
+                flex-wrap: wrap;
+                width: 100%;
+                margin-top: 8px;
+                box-shadow: none;
+                padding: 0;
+                border: none;
+                background: transparent;
+                gap: 8px;
+            }
+            .hover-actions button { 
+                width: 100%; 
+                padding: 12px !important; 
+                font-size: 0.85rem !important;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Mobile Sidebar -->
-    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
-    <nav id="sidebar" class="sidebar">
-        <div class="sidebar-header">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <span class="material-symbols-outlined" style="font-size: 32px;">rocket_launch</span>
-                <button onclick="toggleSidebar()" style="background:none; color:white; padding:0; transform:none">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-            <h2 style="margin: 10px 0 0 0; font-size: 1.4rem; border:none; padding:0">WorkFlow Pro</h2>
-            <p style="margin:0; font-size: 0.8rem; opacity: 0.8;">Team Management System</p>
-        </div>
-
-        <div class="sidebar-content">
-            <div class="sidebar-nav-group">
-                <small>Main Navigation</small>
-                <button id="side-attendanceTabBtn" onclick="switchDashboardTab('attendance'); toggleSidebar();" class="active">
-                    <span class="material-symbols-outlined">assignment_ind</span> Attendance
-                </button>
-                <button id="side-productivityTabBtn" onclick="switchDashboardTab('productivity'); toggleSidebar();">
-                    <span class="material-symbols-outlined">trending_up</span> Productivity
-                </button>
-            </div>
-
-            <div id="side-attendanceSubMenu" class="sidebar-nav-group">
-                <small>Attendance Views</small>
-                <button id="side-checkinSubTabBtn" onclick="switchAttendanceSubTab('checkin'); toggleSidebar();" class="active">
-                    <span class="material-symbols-outlined">how_to_reg</span> Check-in
-                </button>
-                <button id="side-historySubTabBtn" onclick="switchAttendanceSubTab('history'); toggleSidebar();">
-                    <span class="material-symbols-outlined">history</span> History
-                </button>
-                <button id="side-registerSubTabBtn" onclick="switchAttendanceSubTab('register'); toggleSidebar();">
-                    <span class="material-symbols-outlined">person_add</span> Register
-                </button>
-            </div>
-        </div>
-
-        <div class="sidebar-footer">
-            <button onclick="handleSignOut()" style="background:var(--danger); width: 100%;">
-                <span class="material-symbols-outlined">logout</span>
-                Log Out
-            </button>
-        </div>
-    </nav>
-
-    <!-- Mobile Menu Toggle -->
-    <button id="mobileMenuBtn" onclick="toggleSidebar()">
-        <span class="material-symbols-outlined">menu</span>
-    </button>
 
     <!-- Auth Section -->
     <div id="authView" class="auth-container">
@@ -512,6 +462,58 @@
 
     <!-- Dashboard Section -->
     <div id="dashboardView" class="hidden">
+        <!-- Mobile Sidebar (Now inside Dashboard) -->
+        <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <span class="material-symbols-outlined" style="font-size: 32px;">rocket_launch</span>
+                    <button onclick="toggleSidebar()" style="background:none; color:white; padding:0; transform:none">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <h2 style="margin: 10px 0 0 0; font-size: 1.4rem; border:none; padding:0">WorkFlow Pro</h2>
+                <p style="margin:0; font-size: 0.8rem; opacity: 0.8;">Team Management System</p>
+            </div>
+
+            <div class="sidebar-content">
+                <div class="sidebar-nav-group">
+                    <small>Main Navigation</small>
+                    <button id="side-attendanceTabBtn" onclick="switchDashboardTab('attendance'); toggleSidebar();" class="active">
+                        <span class="material-symbols-outlined">assignment_ind</span> Attendance
+                    </button>
+                    <button id="side-productivityTabBtn" onclick="switchDashboardTab('productivity'); toggleSidebar();">
+                        <span class="material-symbols-outlined">trending_up</span> Productivity
+                    </button>
+                </div>
+
+                <div id="side-attendanceSubMenu" class="sidebar-nav-group">
+                    <small>Attendance Views</small>
+                    <button id="side-checkinSubTabBtn" onclick="switchAttendanceSubTab('checkin'); toggleSidebar();" class="active">
+                        <span class="material-symbols-outlined">how_to_reg</span> Check-in
+                    </button>
+                    <button id="side-historySubTabBtn" onclick="switchAttendanceSubTab('history'); toggleSidebar();">
+                        <span class="material-symbols-outlined">history</span> History
+                    </button>
+                    <button id="side-registerSubTabBtn" onclick="switchAttendanceSubTab('register'); toggleSidebar();">
+                        <span class="material-symbols-outlined">person_add</span> Register
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button onclick="handleSignOut()" style="background:var(--danger); width: 100%;">
+                    <span class="material-symbols-outlined">logout</span>
+                    Log Out
+                </button>
+            </div>
+        </nav>
+
+        <!-- Mobile Menu Toggle (Now inside Dashboard) -->
+        <button id="mobileMenuBtn" onclick="toggleSidebar()">
+            <span class="material-symbols-outlined">menu</span>
+        </button>
+
         <div class="user-info container">
             <span id="userDisplay"></span>
             <button onclick="handleSignOut()" style="background:var(--danger)">
@@ -1127,6 +1129,7 @@
 
         // Set initial date filter values if they exist in state
         if (document.getElementById('historyFromDate')) document.getElementById('historyFromDate').value = state.historyFilterFromDate;
+        if (document.getElementById('historyToDate')) document.getElementById('historyToDate').value = state.historyFilterToDate;
         if (document.getElementById('historyToDate')) document.getElementById('historyToDate').value = state.historyFilterToDate;
 
 
