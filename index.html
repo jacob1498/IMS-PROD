@@ -387,8 +387,11 @@
                 margin-bottom: 12px;
                 background: var(--card);
                 box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+                cursor: pointer;
             }
             
+            li.expanded, li.show-actions { z-index: 100; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+
             /* Meta-data row for ID, Role, Shift, Date */
             .col-role {
                 display: inline-flex !important;
@@ -1092,7 +1095,7 @@
                     </div>
                     <div class="col-role">${m.role || '--'}</div>
                     <div class="col-status">
-                        <span class="status-badge ${m.status === 'Present' ? 'present' : 'on-break'}">
+                        <span class="status-badge ${m.status === 'Present' ? 'present' : 'on-break'}" onclick="event.stopPropagation()">
                             ${m.status}
                         </span>
                     </div>
@@ -1170,7 +1173,7 @@
                         </div>
                         <div class="col-role">${m.role || '--'}</div>
                         <div class="col-status">
-                            <span class="status-badge away">
+                            <span class="status-badge away" onclick="event.stopPropagation()">
                                 ${m.status}
                             </span>
                         </div>
