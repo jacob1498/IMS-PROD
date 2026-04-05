@@ -1384,6 +1384,7 @@
             const searchOverlay = document.getElementById('globalSearchOverlay');
 
             // Clean UI when searching
+            const isMobile = window.innerWidth <= 768;
             const isSearching = searchOverlay && searchOverlay.classList.contains('show');
             const checkinUI = document.querySelector('#checkinSubSection .scan-area');
             const checkinH2 = document.querySelector('#checkinSubSection h2');
@@ -1393,7 +1394,7 @@
             const footerNav = document.querySelector('.footer-nav');
             const mainTabGroups = document.querySelectorAll('.tab-group');
 
-            if (checkinUI) checkinUI.style.display = isSearching ? 'none' : 'block';
+            if (checkinUI) checkinUI.style.display = (isSearching || isMobile) ? 'none' : 'block';
             if (checkinH2) checkinH2.style.display = isSearching ? 'none' : 'block';
             if (historyUI) historyUI.style.display = isSearching ? 'none' : 'flex';
             if (historyH2) historyH2.style.display = isSearching ? 'none' : 'block';
