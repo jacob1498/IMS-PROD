@@ -202,6 +202,8 @@
             font-size: 0.7rem;
         }
         
+        .mobile-close-actions { display: none; }
+
         li:hover { background: #f8fafc; }
         li:last-child { border-bottom: none; }
 
@@ -511,6 +513,14 @@
                 padding: 10px !important; 
                 font-size: 0.75rem !important;
                 justify-content: center;
+            }
+
+            .mobile-close-actions { 
+                display: flex !important; 
+                background: none !important; 
+                color: var(--text) !important; 
+                border: 1px solid var(--border) !important; 
+                margin-bottom: 4px;
             }
         }
     </style>
@@ -983,6 +993,9 @@
             if (newStatus === 'Present') state.members[index].breakIn = now;
             if (newStatus === 'Away') state.members[index].timeOut = now;
             
+            // Close actions menu automatically
+            document.querySelectorAll('li.show-actions').forEach(el => el.classList.remove('show-actions'));
+            
             saveData();
         }
 
@@ -995,6 +1008,9 @@
             state.members[index].breakOut = '--';
             state.members[index].breakIn = '--';
             state.members[index].timeOut = '--';
+            
+            // Close actions menu automatically
+            document.querySelectorAll('li.show-actions').forEach(el => el.classList.remove('show-actions'));
             saveData();
         }
 
@@ -1092,6 +1108,10 @@
                     </button>
 
                     <div class="hover-actions" onclick="event.stopPropagation()">
+                        <button onclick="toggleActions(event, this)" class="mobile-close-actions">
+                            <span class="material-symbols-outlined">close</span>
+                            Close
+                        </button>
                         ${m.status === 'Present' ? 
                             `<button onclick="updateStatus(${m.index}, 'On Break')" style="background:#eab308">
                                 <span class="material-symbols-outlined" style="font-size:16px">coffee</span>
@@ -1166,6 +1186,10 @@
                         </button>
 
                         <div class="hover-actions" onclick="event.stopPropagation()">
+                            <button onclick="toggleActions(event, this)" class="mobile-close-actions">
+                                <span class="material-symbols-outlined">close</span>
+                                Close
+                            </button>
                             <button onclick="updateStatus(${m.index}, 'Present')" style="background:var(--primary)">
                                 <span class="material-symbols-outlined" style="font-size:16px">refresh</span>
                                 Re-check In
