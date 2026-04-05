@@ -138,6 +138,28 @@
 
         ul { list-style: none; padding: 0; }
 
+        /* Footer Navigation (Mobile Only) */
+        .footer-nav {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            padding: 8px 0;
+            z-index: 1000;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        .footer-nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 2px;
+            background: none; border: none; color: var(--text-light);
+            padding: 4px; font-size: 0.65rem; font-weight: 700; cursor: pointer;
+            width: 25%; transition: color 0.2s;
+        }
+        .footer-nav-item.active { color: var(--primary); }
+        .footer-nav-item .material-symbols-outlined { font-size: 24px; }
+
         #attendanceList, #historyList, #registerList {
             padding-bottom: 80px;
         }
@@ -404,7 +426,12 @@
             
             .live-clock { display: none !important; }
 
-            /* Mobile Card List Styling */
+            /* FAB & Footer Navigation Visibility */
+            .scan-fab { display: flex !important; bottom: 85px; right: 20px; }
+            #checkinSubSection .scan-area { display: none; }
+            .footer-nav { display: flex !important; }
+            body { padding-bottom: 80px; }
+
             .table-header { display: none; }
             li { 
                 flex-direction: column; 
@@ -412,7 +439,7 @@
                 padding: 12px 16px; 
                 gap: 4px;
                 border: 1px solid var(--border);
-                border-left: 4px solid var(--border); /* Status Indicator Bar */
+                border-left: 4px solid var(--border);
                 border-radius: 8px;
                 margin-bottom: 8px;
                 background: var(--card);
@@ -461,14 +488,6 @@
                 gap: 4px;
                 padding-left: 10px;
             }
-
-            /* FAB Visibility */
-            .scan-fab { 
-                display: flex !important; 
-                bottom: 30px; 
-                right: 25px; 
-            }
-            #checkinSubSection .scan-area { display: none; }
         }
 
         /* Modal Styles */
@@ -548,25 +567,28 @@
 
             <div class="sidebar-content">
                 <div class="sidebar-nav-group">
-                    <small>Main Navigation</small>
+                    <small>Application</small>
+                    <button onclick="switchFooterTab('home')" class="active side-nav-item" data-tab="home">
+                        <span class="material-symbols-outlined">home</span> Home
+                    </button>
+                    <button onclick="switchFooterTab('summary')" class="side-nav-item" data-tab="summary">
+                        <span class="material-symbols-outlined">dashboard</span> Dashboard
+                    </button>
+                    <button onclick="switchFooterTab('reports')" class="side-nav-item" data-tab="reports">
+                        <span class="material-symbols-outlined">analytics</span> Reports
+                    </button>
+                    <button onclick="switchFooterTab('schedule')" class="side-nav-item" data-tab="schedule">
+                        <span class="material-symbols-outlined">calendar_month</span> Schedule
+                    </button>
+                </div>
+
+                <div id="side-homeSubMenu" class="sidebar-nav-group">
+                    <small>Home Views</small>
                     <button id="side-attendanceTabBtn" onclick="switchDashboardTab('attendance'); toggleSidebar();" class="active">
                         <span class="material-symbols-outlined">assignment_ind</span> Attendance
                     </button>
                     <button id="side-productivityTabBtn" onclick="switchDashboardTab('productivity'); toggleSidebar();">
                         <span class="material-symbols-outlined">trending_up</span> Productivity
-                    </button>
-                </div>
-
-                <div id="side-attendanceSubMenu" class="sidebar-nav-group">
-                    <small>Attendance Views</small>
-                    <button id="side-checkinSubTabBtn" onclick="switchAttendanceSubTab('checkin'); toggleSidebar();" class="active">
-                        <span class="material-symbols-outlined">how_to_reg</span> Check-in
-                    </button>
-                    <button id="side-historySubTabBtn" onclick="switchAttendanceSubTab('history'); toggleSidebar();">
-                        <span class="material-symbols-outlined">history</span> History
-                    </button>
-                    <button id="side-registerSubTabBtn" onclick="switchAttendanceSubTab('register'); toggleSidebar();">
-                        <span class="material-symbols-outlined">person_add</span> Register
                     </button>
                 </div>
             </div>
@@ -591,16 +613,17 @@
         </header>
 
         <div class="container">
-            <div class="tab-group">
-                <button id="attendanceTabBtn" class="active" onclick="switchDashboardTab('attendance')">
-                    <span class="material-symbols-outlined">assignment_ind</span>
-                    Attendance
-                </button>
-                <button id="productivityTabBtn" onclick="switchDashboardTab('productivity')">
-                    <span class="material-symbols-outlined">trending_up</span>
-                    Productivity
-                </button>
-            </div>
+            <div id="homeView">
+                <div class="tab-group">
+                    <button id="attendanceTabBtn" class="active" onclick="switchDashboardTab('attendance')">
+                        <span class="material-symbols-outlined">assignment_ind</span>
+                        Attendance
+                    </button>
+                    <button id="productivityTabBtn" onclick="switchDashboardTab('productivity')">
+                        <span class="material-symbols-outlined">trending_up</span>
+                        Productivity
+                    </button>
+                </div>
 
             <!-- Attendance Section -->
             <div id="attendanceSection" class="card">
@@ -690,6 +713,46 @@
                 </div>
                 <ul id="taskList"></ul>
             </div>
+            </div> <!-- End Home View -->
+
+            <!-- Dashboard Summary Section -->
+            <div id="summarySection" class="hidden">
+                <h2>Team Performance Summary</h2>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                    <div class="card" style="text-align: center; border-top: 4px solid var(--primary);">
+                        <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Total Users</div>
+                        <div id="sumTotalMembers" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0</div>
+                    </div>
+                    <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
+                        <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Present</div>
+                        <div id="sumPresent" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0</div>
+                    </div>
+                    <div class="card" style="text-align: center; border-top: 4px solid #eab308;">
+                        <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">On Break</div>
+                        <div id="sumBreak" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0</div>
+                    </div>
+                    <div class="card" style="text-align: center; border-top: 4px solid var(--primary-dark);">
+                        <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Task Load</div>
+                        <div id="sumTaskProgress" style="font-size: 1.8rem; font-weight: 800; margin: 10px 0;">0%</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 style="margin-top:0">Quick Insights</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-light);">Summary updates automatically as members check in and tasks are completed.</p>
+                </div>
+            </div>
+
+            <!-- Reports Placeholder -->
+            <div id="reportsSection" class="hidden">
+                <h2>Reports & Analytics</h2>
+                <div class="empty-state">Detailed performance reports and export features will be available here.</div>
+            </div>
+
+            <!-- Schedule Placeholder -->
+            <div id="scheduleSection" class="hidden">
+                <h2>Team Schedule</h2>
+                <div class="empty-state">Weekly rosters and shift scheduling management coming soon.</div>
+            </div>
         </div>
 
         <footer class="container dashboard-footer">
@@ -736,6 +799,26 @@
                 <button onclick="toggleScanOverlay()" style="width:100%; background:var(--bg); color:var(--text)">Cancel Scanner</button>
             </div>
         </div>
+
+        <!-- Mobile Footer Navigation -->
+        <nav class="footer-nav">
+            <button class="footer-nav-item active" onclick="switchFooterTab('home')" data-tab="home">
+                <span class="material-symbols-outlined">home</span>
+                <span>Home</span>
+            </button>
+            <button class="footer-nav-item" onclick="switchFooterTab('summary')" data-tab="summary">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span>Dashboard</span>
+            </button>
+            <button class="footer-nav-item" onclick="switchFooterTab('reports')" data-tab="reports">
+                <span class="material-symbols-outlined">analytics</span>
+                <span>Reports</span>
+            </button>
+            <button class="footer-nav-item" onclick="switchFooterTab('schedule')" data-tab="schedule">
+                <span class="material-symbols-outlined">calendar_month</span>
+                <span>Schedule</span>
+            </button>
+        </nav>
 
         <!-- Register Member Modal -->
         <div id="registerModal" class="modal-overlay hidden" onclick="closeRegisterModal()">
@@ -854,6 +937,45 @@
             document.getElementById('signupTab').classList.toggle('active', mode === 'signup');
         }
 
+        function switchFooterTab(tab) {
+            // Manage main views
+            const homeView = document.getElementById('homeView');
+            const summarySection = document.getElementById('summarySection');
+            const reportsSection = document.getElementById('reportsSection');
+            const scheduleSection = document.getElementById('scheduleSection');
+
+            if(homeView) homeView.classList.toggle('hidden', tab !== 'home');
+            if(summarySection) summarySection.classList.toggle('hidden', tab !== 'summary');
+            if(reportsSection) reportsSection.classList.toggle('hidden', tab !== 'reports');
+            if(scheduleSection) scheduleSection.classList.toggle('hidden', tab !== 'schedule');
+
+            // Update active state in footer
+            document.querySelectorAll('.footer-nav-item').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+
+            // Update sidebar active state
+            document.querySelectorAll('.side-nav-item').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+            if (document.getElementById('side-homeSubMenu')) {
+                document.getElementById('side-homeSubMenu').classList.toggle('hidden', tab !== 'home');
+            }
+
+            // Update Header Title
+            const titles = { 
+                home: 'Home', 
+                summary: 'Dashboard', 
+                reports: 'Reports', 
+                schedule: 'Schedule' 
+            };
+            const headerTitle = document.querySelector('header h1');
+            if(headerTitle) headerTitle.innerText = titles[tab];
+
+            if (document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
+            render(); 
+        }
+
         function switchDashboardTab(tab) {
             const attSection = document.getElementById('attendanceSection');
             const prodSection = document.getElementById('productivitySection');
@@ -870,7 +992,6 @@
             if (document.getElementById('side-attendanceTabBtn')) {
                 document.getElementById('side-attendanceTabBtn').classList.toggle('active', tab === 'attendance');
                 document.getElementById('side-productivityTabBtn').classList.toggle('active', tab === 'productivity');
-                document.getElementById('side-attendanceSubMenu').classList.toggle('hidden', tab !== 'attendance');
             }
         }
 
@@ -1421,6 +1542,16 @@
             const totalTasks = state.tasks.length;
             const progress = totalTasks === 0 ? 0 : (completedCount / totalTasks) * 100;
             if (progressBar) progressBar.style.width = progress + '%';
+
+            // Update Summary Stats
+            const totalMembers = state.members.length;
+            const presentCount = state.members.filter(m => m.status === 'Present').length;
+            const breakCount = state.members.filter(m => m.status === 'On Break').length;
+            
+            if(document.getElementById('sumTotalMembers')) document.getElementById('sumTotalMembers').innerText = totalMembers;
+            if(document.getElementById('sumPresent')) document.getElementById('sumPresent').innerText = presentCount;
+            if(document.getElementById('sumBreak')) document.getElementById('sumBreak').innerText = breakCount;
+            if(document.getElementById('sumTaskProgress')) document.getElementById('sumTaskProgress').innerText = Math.round(progress) + '%';
         }
 
         function updateClock() {
@@ -1433,10 +1564,12 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // Set initial date filter values if they exist in state
-        if (document.getElementById('historyFromDate')) document.getElementById('historyFromDate').value = state.historyFilterFromDate;
-        if (document.getElementById('historyToDate')) document.getElementById('historyToDate').value = state.historyFilterToDate;
-        if (document.getElementById('historyToDate')) document.getElementById('historyToDate').value = state.historyFilterToDate;
+        // Initialize filter values from state safely
+        const fromFilter = document.getElementById('historyFromDate');
+        const toFilter = document.getElementById('historyToDate');
+        
+        if (fromFilter) fromFilter.value = state.historyFilterFromDate || '';
+        if (toFilter) toFilter.value = state.historyFilterToDate || '';
 
 
         // Initial Load
