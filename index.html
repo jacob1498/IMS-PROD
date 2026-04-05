@@ -1455,9 +1455,9 @@
             supabaseClient.channel('db-changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, payload => {
                     if (payload.eventType === 'DELETE') {
-                        state.members = state.members.filter(m => m.userId !== payload.old.userId);
+                        state.members = state.members.filter(m => m.userid !== payload.old.userid);
                     } else {
-                        const idx = state.members.findIndex(m => m.userId === payload.new.userId);
+                        const idx = state.members.findIndex(m => m.userid === payload.new.userid);
                         if (idx > -1) state.members[idx] = payload.new;
                         else state.members.push(payload.new);
                     }
@@ -1646,7 +1646,7 @@
         function processScannedUserId(userId, action = null) {
             if (!userId) return;
             userId = userId.toString().trim();
-            const index = state.members.findIndex(m => m.userId === userId);
+            const index = state.members.findIndex(m => m.userid === userId);
 
             if (index === -1) {
                 showToast("User ID not found!", "error");
@@ -1659,7 +1659,7 @@
             // Productivity Mode Auto-Toggle
             const isProductivityVisible = !document.getElementById('productivitySection').classList.contains('hidden');
             if (isProductivityVisible) {
-                const activeTaskIdx = state.tasks.findIndex(t => t.userId === userId && !t.completed);
+                const activeTaskIdx = state.tasks.findIndex(t => t.userid === userId && !t.completed);
                 
                 // Check for Stop action (explicit or toggle)
                 if (action === 'stop' || (action === null && activeTaskIdx !== -1)) {
@@ -1684,7 +1684,7 @@
                                 supabaseClient.from('tasks').insert({
                                     location: loc,
                                     binType: 'Reserved',
-                                    userId: userId,
+                                    userid: userId,
                                     userName: member.name,
                                     startTime: new Date().toISOString(),
                                     completed: false
@@ -1701,7 +1701,7 @@
             }
 
             document.getElementById('scannedMemberName').innerText = member.name;
-            document.getElementById('scannedMemberId').innerText = `ID: ${member.userId} | Role: ${member.role}`;
+            document.getElementById('scannedMemberId').innerText = `ID: ${member.userid} | Role: ${member.role}`;
             
             if (document.getElementById('scanOverlay').classList.contains('show')) {
                 toggleScanOverlay();
@@ -1716,7 +1716,7 @@
 
         function executeScanAction(action) {
             if (!pendingUserId) return;
-            const index = state.members.findIndex(m => m.userId === pendingUserId);
+            const index = state.members.findIndex(m => m.userid === pendingUserId);
             const member = state.members[index];
             
             const updates = {};
@@ -1742,7 +1742,7 @@
                 updates.timeOut = timeStr;
             }
 
-            supabaseClient.from('members').update(updates).eq('userId', pendingUserId).then(() => {
+            supabaseClient.from('members').update(updates).eq('userid', pendingUserId).then(() => {
                 showToast(`${action} successful!`, "success");
             });
             
@@ -1764,7 +1764,7 @@
             const userId = scanInput.value.trim();
             if (!userId) return;
 
-            const index = state.members.findIndex(m => m.userId === userId);
+            const index = state.members.findIndex(m => m.userid === userId);
             if (index === -1) return alert("User ID not found!");
             if (index === -1) return showToast("User ID not found!", "error");
 
@@ -1791,7 +1791,7 @@
         }
 
         async function updateStatus(index, newStatus) {
-            const userId = state.members[index].userId;
+            const userId = state.members[index].userid;
             const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const updates = { status: newStatus };
             
@@ -1799,7 +1799,7 @@
             if (newStatus === 'Present') updates.breakIn = now;
             if (newStatus === 'Away') updates.timeOut = now;
             
-            await supabaseClient.from('members').update(updates).eq('userId', userId);
+            await supabaseClient.from('members').update(updates).eq('userid', userId);
 
             // Close actions menu automatically
             document.querySelectorAll('li.show-actions').forEach(el => el.classList.remove('show-actions'));
@@ -1807,10 +1807,10 @@
 
         async function resetAttendance(index) {
             if (!confirm("Undo check-in for this member? This will clear all timestamps for this session.")) return;
-            const userId = state.members[index].userId;
+            const userId = state.members[index].userid;
             await supabaseClient.from('members').update({
                 status: 'Away', date: '--', shift: '--', timeIn: '--', breakOut: '--', breakIn: '--', timeOut: '--'
-            }).eq('userId', userId);
+            }).eq('userid', userId);
 
             showToast("Attendance reset.", "info");
             // Close actions menu automatically
@@ -1826,7 +1826,7 @@
 
             body.innerHTML = `
                 <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value">${m.name}</span></div>
-                <div class="detail-row"><span class="detail-label">User ID</span><span class="detail-value">${m.userId}</span></div>
+                <div class="detail-row"><span class="detail-label">User ID</span><span class="detail-value">${m.userid}</span></div>
                 <div class="detail-row"><span class="detail-label">Role</span><span class="detail-value">${m.role || '--'}</span></div>
                 <div class="detail-row"><span class="detail-label">Shift</span><span class="detail-value">${m.shift || '--'}</span></div>
                 <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">${m.status}</span></div>
@@ -1923,7 +1923,7 @@
             const allCounters = state.members.filter(m => counterRoles.includes(m.role));
             
             const activeTasks = state.tasks.filter(t => !t.completed);
-            const activeCounterIds = new Set(activeTasks.map(t => t.userId));
+            const activeCounterIds = new Set(activeTasks.map(t => t.userid));
             
             let list = [];
             let titleText = "";
@@ -1931,23 +1931,23 @@
             if (type === 'active') {
                 titleText = "Active Counters";
                 list = allCounters.filter(m => activeCounterIds.has(m.userId)).map(m => {
-                    const task = activeTasks.find(t => t.userId === m.userId);
+                    const task = activeTasks.find(t => t.userid === m.userid);
                     return { ...m, subText: `${task.location} (${task.binType}) • Running: ${calculateDuration(task.startTime)}` };
                 });
             } else if (type === 'inactive') {
                 titleText = "Inactive Counters";
-                list = allCounters.filter(m => !activeCounterIds.has(m.userId)).map(m => ({
+                list = allCounters.filter(m => !activeCounterIds.has(m.userid)).map(m => ({
                     ...m, subText: m.status === 'Away' ? 'Not Clocked In' : (m.status === 'On Break' ? 'On Break' : 'Available for Cycle Count')
                 }));
             } else if (type === 'long') {
                 titleText = "Long Cycle Sessions (> 1Hr)";
                 list = allCounters.filter(m => {
-                    const t = activeTasks.find(task => task.userId === m.userId);
+                    const t = activeTasks.find(task => task.userid === m.userid);
                     if (!t || !t.startTime) return false;
                     const diff = (now - new Date(t.startTime)) / 3600000;
                     return diff > 1;
                 }).map(m => {
-                    const task = activeTasks.find(t => t.userId === m.userId);
+                    const task = activeTasks.find(t => t.userid === m.userid);
                     return { ...m, subText: `${task.location} (${task.binType}) • Session: ${calculateDuration(task.startTime)}`, isAlert: true };
                 });
             } else if (type === 'break') {
@@ -1968,7 +1968,7 @@
                             <span style="font-weight:700; font-size:1.05rem">${m.name}</span>
                             ${m.isAlert ? `<span style="color:var(--danger); font-weight:800; font-size:0.8rem; background:#fee2e2; padding: 2px 8px; border-radius:6px">OVER 1HR</span>` : ''}
                         </div>
-                        <div style="font-size:0.75rem; color:var(--text-light); font-weight:500">${m.role} • ID: ${m.userId}</div>
+                        <div style="font-size:0.75rem; color:var(--text-light); font-weight:500">${m.role} • ID: ${m.userid}</div>
                         <div style="font-size:0.85rem; color:var(--primary); font-weight:600; margin-top:2px">${m.subText}</div>
                     </div>
                 `).join('') + '</div>';
@@ -1978,8 +1978,8 @@
 
         async function deleteMember(index) {
             if (!confirm("Remove this member from the User Master?")) return;
-            const userId = state.members[index].userId;
-            await supabaseClient.from('members').delete().eq('userId', userId);
+            const userId = state.members[index].userid;
+            await supabaseClient.from('members').delete().eq('userid', userId);
             showToast("Member removed.", "info");
         }
 
@@ -2011,7 +2011,7 @@
             const roleStats = {};
             state.tasks.forEach(task => {
                 if (!task.completed) return;
-                const member = state.members.find(m => m.userId === task.userId);
+                const member = state.members.find(m => m.userid === task.userid);
                 const role = member ? member.role : 'Other';
                 if (!roleStats[role]) {
                     roleStats[role] = { units: 0, skus: 0 };
@@ -2050,7 +2050,7 @@
             const headers = ["User ID", "Name", "Role", "Status", "Date", "Shift", "Time In", "Break Out", "Break In", "Time Out"];
             const csvRows = [headers.join(",")];
             state.members.forEach(m => {
-                const row = [m.userId, m.name, m.role, m.status, m.date, m.shift, m.timeIn, m.breakOut, m.breakIn, m.timeOut];
+                const row = [m.userid, m.name, m.role, m.status, m.date, m.shift, m.timeIn, m.breakOut, m.breakIn, m.timeOut];
                 csvRows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
             });
             downloadFile(csvRows.join("\n"), `Attendance_Report_${new Date().toISOString().slice(0,10)}.csv`);
@@ -2064,7 +2064,7 @@
             state.tasks.forEach(t => {
                 const duration = calculateDuration(t.startTime, t.endTime).replace('m', '');
                 const row = [
-                    t.location, t.binType, t.userId, t.userName, t.completed ? 'Completed' : 'Active',
+                    t.location, t.binType, t.userid, t.userName, t.completed ? 'Completed' : 'Active',
                     t.startTime ? new Date(t.startTime).toLocaleString() : '',
                     t.endTime ? new Date(t.endTime).toLocaleString() : '',
                     duration, t.qty || 0, t.skuCount || 0
@@ -2093,13 +2093,13 @@
 
         async function selectZone(zone) {
             if (!pendingUserId) return;
-            const index = state.members.findIndex(m => m.userId === pendingUserId);
+            const index = state.members.findIndex(m => m.userid === pendingUserId);
             const member = state.members[index];
 
             await supabaseClient.from('tasks').insert({
                 location: zone,
                 binType: 'Pick',
-                userId: pendingUserId,
+                userid: pendingUserId,
                 userName: member.name,
                 startTime: new Date().toISOString()
             });
@@ -2358,7 +2358,7 @@
                     .filter(t => t.location && t.location.toLowerCase().includes(globalSearch))
                     .map(t => ({
                         name: t.location,
-                        userId: t.userId,
+                        userid: t.userid,
                         role: `Counter: ${t.userName} (${t.binType || 'Pick'})`,
                         type: 'Cycle Count',
                         isTask: true,
@@ -2371,8 +2371,8 @@
                     ...filteredRegister.map(m => ({ ...m, type: 'User' })),
                     ...taskMatches
                 ];
-                const uniqueResults = Array.from(new Set(results.map(r => r.isTask ? `task-${r.taskIndex}` : r.userId)))
-                    .map(key => results.find(r => (r.isTask ? `task-${r.taskIndex}` : r.userId) === key));
+                const uniqueResults = Array.from(new Set(results.map(r => r.isTask ? `task-${r.taskIndex}` : r.userid)))
+                    .map(key => results.find(r => (r.isTask ? `task-${r.taskIndex}` : r.userid) === key));
 
                 const globalSearchResults = document.getElementById('globalSearchResults');
                 if (globalSearchResults) {
@@ -2384,7 +2384,7 @@
                             </div>
                             <div class="mobile-meta-row">
                                 <span class="col-role">${m.role || '--'}</span>
-                                <span style="font-size:0.7rem; color:var(--text-light)">ID: ${highlightMatch(m.userId, globalSearch)}</span>
+                                <span style="font-size:0.7rem; color:var(--text-light)">ID: ${highlightMatch(m.userid, globalSearch)}</span>
                             </div>
                             <div class="col-actions">
                                 <button class="btn-action-sm details" title="View Details"><span class="material-symbols-outlined">chevron_right</span></button>
@@ -2414,7 +2414,7 @@
                         </div>
                         <div class="mobile-meta-row">
                             <span class="col-role">${m.role || '--'}</span>
-                            <span style="font-size:0.7rem; color:var(--text-light)">ID: ${m.userId}</span>
+                            <span style="font-size:0.7rem; color:var(--text-light)">ID: ${m.userid}</span>
                         </div>
                         <div class="col-actions">
                             <button class="btn-action-sm" onclick="openEditModal(${m.index})" title="Edit Member">
@@ -2445,7 +2445,7 @@
                     const matchesSearch = !globalSearch || 
                         (t.location && t.location.toLowerCase().includes(globalSearch)) || 
                         (t.userName && t.userName.toLowerCase().includes(globalSearch)) ||
-                        (t.userId && t.userId.toLowerCase().includes(globalSearch));
+                        (t.userid && t.userid.toLowerCase().includes(globalSearch));
                     return matchesTab && matchesSearch;
                 })
                 .reverse();
@@ -2465,7 +2465,7 @@
                     <div class="col-info">
                         <span class="${t.completed ? 'task-done' : ''}" style="font-weight: 700; display:block">${t.location} 
                             <small style="font-weight:400; color:var(--primary)">[${t.binType || 'Pick'}]</small></span>
-                        <div style="font-size: 0.7rem; color: var(--text-light)">${t.userName} (ID: ${t.userId})</div>
+                        <div style="font-size: 0.7rem; color: var(--text-light)">${t.userName} (ID: ${t.userid})</div>
                     </div>
                     <div class="col-status">
                         <span class="status-badge ${statusClass}">${statusLabel}</span>
@@ -2583,13 +2583,13 @@
             const allCounters = state.members.filter(m => counterRoles.includes(m.role));
             
             const activeTasks = state.tasks.filter(t => !t.completed);
-            const activeCounterIds = new Set(activeTasks.map(t => t.userId));
+            const activeCounterIds = new Set(activeTasks.map(t => t.userid));
             
-            const totalActiveCounters = allCounters.filter(m => activeCounterIds.has(m.userId)).length;
+            const totalActiveCounters = allCounters.filter(m => activeCounterIds.has(m.userid)).length;
             const totalInactiveCounters = allCounters.length - totalActiveCounters;
             
             const longCycleCount = activeTasks.filter(t => {
-                const m = allCounters.find(mem => mem.userId === t.userId);
+                const m = allCounters.find(mem => mem.userid === t.userid);
                 if (!m || !t.startTime) return false;
                 const diff = (now - new Date(t.startTime)) / 3600000; // hours
                 return diff > 1;
@@ -2636,7 +2636,7 @@
             state.members.forEach(m => {
                 if (m.status === 'On Break' && m.breakOut && m.breakOut !== '--') {
                     const duration = getBreakDuration(m.breakOut);
-                    const alertKey = `break-${m.userId}-${m.breakOut}`;
+                    const alertKey = `break-${m.userid}-${m.breakOut}`;
                     if (duration > 40 && !notifiedAlerts.has(alertKey)) {
                         showToast(`LONG BREAK: ${m.name} (${duration}m)`, 'error');
                         notifiedAlerts.add(alertKey);
@@ -2649,7 +2649,7 @@
             state.tasks.forEach(t => {
                 if (!t.completed && t.startTime) {
                     const diffHours = (now - new Date(t.startTime)) / 3600000;
-                    const alertKey = `count-${t.userId}-${t.startTime}`;
+                    const alertKey = `count-${t.userid}-${t.startTime}`;
                     if (diffHours > 1 && !notifiedAlerts.has(alertKey)) {
                         showToast(`LONG COUNT: ${t.userName} at ${t.location}`, 'error');
                         notifiedAlerts.add(alertKey);
