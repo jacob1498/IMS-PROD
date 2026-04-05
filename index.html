@@ -1509,9 +1509,11 @@
             try {
                 const { data: members } = await supabaseClient.from('members').select('*');
                 const { data: tasks } = await supabaseClient.from('tasks').select('*');
+                const { data: schedules } = await supabaseClient.from('schedules').select('*');
                 
                 state.members = members || [];
                 state.tasks = tasks || [];
+                state.schedules = schedules || [];
                 render();
             } catch (err) {
                 console.error("Fetch error:", err);
@@ -1542,6 +1544,16 @@
                         const idx = state.tasks.findIndex(t => t.id === payload.new.id);
                         if (idx > -1) state.tasks[idx] = payload.new;
                         else state.tasks.push(payload.new);
+                    }
+                    render();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, payload => {
+                    if (payload.eventType === 'DELETE') {
+                        state.schedules = state.schedules.filter(s => s.id !== payload.old.id);
+                    } else {
+                        const idx = state.schedules.findIndex(s => s.id === payload.new.id);
+                        if (idx > -1) state.schedules[idx] = payload.new;
+                        else state.schedules.push(payload.new);
                     }
                     render();
                 })
@@ -1892,25 +1904,40 @@
             document.querySelectorAll('li.show-actions').forEach(el => el.classList.remove('show-actions'));
         }
 
-        function handleScheduleUpload(event) {
+        async function handleScheduleUpload(event) {
             const file = event.target.files[0];
-            if (!file) return;
+            if (!file || !supabaseClient) return;
+
+            toggleLoader(true);
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 const text = e.target.result;
                 const lines = text.split('\n');
-                const schedules = [];
+                const newSchedules = [];
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if (!line) continue;
                     const parts = line.split(',');
                     if (parts.length >= 5) {
-                        schedules.push({ date: parts[0].trim(), area: parts[1].trim(), shift: parts[2].trim(), time: parts[3].trim(), hc: parts[4].trim() });
+                        newSchedules.push({ 
+                            date: parts[0].trim(), 
+                            area: parts[1].trim(), 
+                            shift: parts[2].trim(), 
+                            time: parts[3].trim(), 
+                            hc: parseInt(parts[4].trim()) || 0 
+                        });
                     }
                 }
-                state.schedules = schedules;
-                showToast("Schedule uploaded successfully!", "success");
-                render();
+
+                const { error } = await supabaseClient.from('schedules').insert(newSchedules);
+                toggleLoader(false);
+
+                if (error) {
+                    showToast("Error saving to Supabase: " + error.message, "error");
+                } else {
+                    showToast("Schedule saved to Supabase!", "success");
+                    fetchInitialData();
+                }
             };
             reader.readAsText(file);
         }
