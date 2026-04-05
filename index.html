@@ -2690,6 +2690,11 @@
         } else {
             render();
         }
+
+        // Auto-refresh data and UI every 2 seconds
+        setInterval(() => {
+            if (supabaseClient) fetchInitialData().catch(console.error);
+        }, 2000);
     </script>
 </body>
 </html>
