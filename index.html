@@ -1529,7 +1529,7 @@
             document.getElementById('registerModalTitle').innerText = "Edit Member";
             document.getElementById('saveMemberBtn').innerHTML = '<span class="material-symbols-outlined">edit</span> Update Member';
             
-            document.getElementById('memberIdInput').value = m.userId;
+            document.getElementById('memberIdInput').value = m.userid;
             document.getElementById('memberNameInput').value = m.name;
             document.getElementById('memberRoleInput').value = m.role;
             
@@ -1552,14 +1552,14 @@
             }
 
             // Duplicate check logic
-            const existingIndex = state.members.findIndex(m => m.userId === idInput.value);
+            const existingIndex = state.members.findIndex(m => m.userid === idInput.value);
             if (existingIndex !== -1 && existingIndex !== currentEditingIndex) {
                 showToast("User ID already exists!", "error");
                 return;
             }
 
             const memberData = {
-                userId: idInput.value,
+                userid: idInput.value,
                 name: nameInput.value,
                 role: roleInput.value
             };
@@ -1890,7 +1890,7 @@
                                 ${getBreakDuration(m.breakOut)}m
                             </span>
                         </div>
-                        <div style="font-size:0.75rem; color:var(--text-light); font-weight:500">${m.role} • ID: ${m.userId} • Out: ${m.breakOut}</div>
+                        <div style="font-size:0.75rem; color:var(--text-light); font-weight:500">${m.role} • ID: ${m.userid} • Out: ${m.breakOut}</div>
                     </div>
                 `).join('') + '</div>';
             }
@@ -1930,7 +1930,7 @@
 
             if (type === 'active') {
                 titleText = "Active Counters";
-                list = allCounters.filter(m => activeCounterIds.has(m.userId)).map(m => {
+                list = allCounters.filter(m => activeCounterIds.has(m.userid)).map(m => {
                     const task = activeTasks.find(t => t.userid === m.userid);
                     return { ...m, subText: `${task.location} (${task.binType}) • Running: ${calculateDuration(task.startTime)}` };
                 });
@@ -2238,13 +2238,14 @@
                 .map((m, i) => ({ ...m, index: i }))
                 .filter(m => 
                     (m.name.toLowerCase().includes(globalSearch) || m.userId.toLowerCase().includes(globalSearch))
+                    (m.name.toLowerCase().includes(globalSearch) || (m.userid && m.userid.toLowerCase().includes(globalSearch)))
                 );
 
             // Render Attendance List (Check-in view)
             const checkedInMembers = state.members
                 .map((m, i) => ({ ...m, index: i }))
                 .filter(m => m.status !== 'Away' && 
-                    (m.name.toLowerCase().includes(globalSearch) || m.userId.toLowerCase().includes(globalSearch))
+                    (m.name.toLowerCase().includes(globalSearch) || m.userid.toLowerCase().includes(globalSearch))
                 );
 
             const checkinHeader = `
@@ -2276,7 +2277,7 @@
                         </div>
                     </div>
                     <div class="col-actions">
-                        <button class="btn-action-sm" onclick="processScannedUserId('${m.userId}')" title="Quick Actions">
+                        <button class="btn-action-sm" onclick="processScannedUserId('${m.userid}')" title="Quick Actions">
                             <span class="material-symbols-outlined">qr_code_2</span>
                         </button>
                         <button class="btn-action-sm details" onclick="showMemberDetails(${m.index})" title="View Details">
@@ -2299,7 +2300,7 @@
             const checkedOutMembers = state.members
                 .map((m, i) => ({ ...m, index: i }))
                 .filter(m => {
-                    const matchesSearch = m.name.toLowerCase().includes(globalSearch) || m.userId.toLowerCase().includes(globalSearch);
+                    const matchesSearch = m.name.toLowerCase().includes(globalSearch) || m.userid.toLowerCase().includes(globalSearch);
                     const isAwayAndTimedIn = m.status === 'Away' && m.timeIn !== '--';
 
                     if (!isAwayAndTimedIn) return false;
@@ -2407,7 +2408,7 @@
                 const registerLimit = displayLimits.register;
                 registerList.innerHTML = filteredRegister.length ? registerHeader + filteredRegister.slice(0, registerLimit).map((m) => `
                     <li>
-                        <div class="col-id">${m.userId}</div>
+                        <div class="col-id">${m.userid}</div>
                         <div class="col-role">${m.role || '--'}</div>
                         <div class="col-info">
                             <div style="font-weight:600; font-size:0.9rem">${m.name}</div>
