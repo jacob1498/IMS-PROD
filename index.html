@@ -258,7 +258,7 @@
         .task-done { text-decoration: line-through; color: #94a3b8; }
         
         .empty-state { text-align: center; color: var(--text-light); padding: 20px; font-style: italic; font-size: 0.9rem; }
-        .col-duration { width: 80px; text-align: right; font-weight: 800; font-size: 0.85rem; }
+        .col-duration { width: 60px; text-align: center; font-weight: 800; font-size: 0.85rem; }
 
         /* Enhanced Scan & Search Visuals */
         .scan-area {
@@ -717,12 +717,6 @@
                                 <button onclick="quickAction('Away')" title="Quick Time Out" style="background: var(--danger); width: 45px; padding: 0;">
                                     <span class="material-symbols-outlined">logout</span>
                                 </button>
-                                <button onclick="quickAction('Task Start')" title="Start Task" style="background: var(--primary); width: 45px; padding: 0;">
-                                    <span class="material-symbols-outlined">play_circle</span>
-                                </button>
-                                <button onclick="quickAction('Task Stop')" title="End Task" style="background: var(--text-light); width: 45px; padding: 0;">
-                                    <span class="material-symbols-outlined">stop_circle</span>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -765,19 +759,31 @@
                 <div class="progress-container">
                     <div id="progress-bar"></div>
                 </div>
-                <div class="input-group">
-                    <input type="text" id="taskInput" placeholder="New task..." onkeyup="if(event.key==='Enter') addTask()">
-                    <button onclick="addTask()">
-                        <span class="material-symbols-outlined">add_task</span>
-                        Add Task
+                <div class="input-group" style="flex-wrap: wrap;">
+                    <div id="binTypeToggle" style="display: flex; background: var(--bg); border-radius: 6px; padding: 2px; border: 1px solid var(--border);">
+                        <button id="btnPick" onclick="setBinType('Pick')" style="background: var(--primary); color: white; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px;">Pick</button>
+                        <button id="btnRes" onclick="setBinType('Reserved')" style="background: transparent; color: var(--text-light); padding: 6px 12px; font-size: 0.75rem; border-radius: 4px;">Reserved</button>
+                    </div>
+                    <input type="text" id="locationInput" placeholder="Location (e.g. A-101)" class="hidden" style="flex: 1; min-width: 150px;">
+                    <input type="text" id="taskInput" placeholder="User ID..." onkeyup="if(event.key==='Enter') processScannedUserId(this.value)" style="flex: 1; min-width: 100px;">
+                    <button onclick="processScannedUserId(document.getElementById('taskInput').value, 'start')" style="background: var(--success);" title="Start Cycle Count">
+                        <span class="material-symbols-outlined">play_circle</span> Start
+                    </button>
+                    <button onclick="processScannedUserId(document.getElementById('taskInput').value, 'stop')" style="background: var(--text-light);" title="End Cycle Count">
+                        <span class="material-symbols-outlined">stop_circle</span> End
+                    </button>
+                    <button onclick="toggleScanOverlay()" title="Scan QR Code">
+                        <span class="material-symbols-outlined">qr_code_scanner</span>
+                        Scan
                     </button>
                 </div>
                 <div class="table-header" style="margin-top: 10px;">
-                    <div class="col-info">Task Description</div>
-                    <div class="col-status">Status</div>
+                    <div class="col-info">Location / User</div>
+                    <div class="col-status">Status / Qty</div>
                     <div class="col-date">Start</div>
                     <div class="col-date">End</div>
                     <div class="col-duration">Mins</div>
+                    <div class="col-actions-header">Actions</div>
                 </div>
                 <ul id="taskList"></ul>
             </div>
@@ -889,11 +895,45 @@
                     <button onclick="executeScanAction('Away')" style="background: var(--danger); flex-direction: column; padding: 15px; height: auto;">
                         <span class="material-symbols-outlined">logout</span> Time Out
                     </button>
-                    <button onclick="executeScanAction('Task Start')" style="background: var(--primary); flex-direction: column; padding: 15px; height: auto;">
-                        <span class="material-symbols-outlined">play_circle</span> Start Task
-                    </button>
-                    <button onclick="executeScanAction('Task Stop')" style="background: var(--text-light); flex-direction: column; padding: 15px; height: auto;">
-                        <span class="material-symbols-outlined">stop_circle</span> End Task
+                </div>
+            </div>
+        </div>
+
+        <!-- Pick Zone Selection Modal -->
+        <div id="zoneModal" class="modal-overlay hidden" onclick="closeZoneModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>Select Pick Zone</h3>
+                    <button onclick="closeZoneModal()" style="background:none; color:var(--text-light); padding:0"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 20px;">Choose the pick zone to start counting:</p>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                    <button onclick="selectZone('Coldroom')" style="padding: 15px; font-size: 1rem;">Coldroom</button>
+                    <button onclick="selectZone('Storage')" style="padding: 15px; font-size: 1rem;">Storage</button>
+                    <button onclick="selectZone('Ecom 2')" style="padding: 15px; font-size: 1rem;">Ecom 2</button>
+                </div>
+                <button onclick="closeZoneModal()" style="width:100%; margin-top:20px; background:var(--bg); color:var(--text)">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Quantity Entry Modal -->
+        <div id="quantityModal" class="modal-overlay hidden" onclick="closeQuantityModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3 id="qtyModalTitle">End Cycle Count</h3>
+                    <button onclick="closeQuantityModal()" style="background:none; color:var(--text-light); padding:0"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="input-group" style="flex-direction: column; gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Total Items Counted</label>
+                        <input type="number" id="modalQtyInput" placeholder="Enter total units" style="width: 100%; box-sizing: border-box;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Unique SKUs / Items</label>
+                        <input type="number" id="modalSkuInput" placeholder="Enter count of SKUs" style="width: 100%; box-sizing: border-box;">
+                    </div>
+                    <button onclick="saveQuantityData()" style="width: 100%; margin-top: 10px; padding: 12px; background: var(--success);">
+                        <span class="material-symbols-outlined">check_circle</span> Finish Cycle Count
                     </button>
                 </div>
             </div>
@@ -1348,30 +1388,83 @@
             }
         }
 
-        function processScannedUserId(userId) {
-            userId = userId.trim();
-            const index = state.members.findIndex(m => m.userId === userId);
+        let currentBinType = 'Pick';
+        function setBinType(type) {
+            currentBinType = type;
+            const pickBtn = document.getElementById('btnPick');
+            const resBtn = document.getElementById('btnRes');
+            const locInput = document.getElementById('locationInput');
             
+            pickBtn.style.background = type === 'Pick' ? 'var(--primary)' : 'transparent';
+            pickBtn.style.color = type === 'Pick' ? 'white' : 'var(--text-light)';
+            resBtn.style.background = type === 'Reserved' ? 'var(--primary)' : 'transparent';
+            resBtn.style.color = type === 'Reserved' ? 'white' : 'var(--text-light)';
+
+            if (type === 'Pick') {
+                locInput.classList.add('hidden');
+            } else {
+                locInput.classList.remove('hidden');
+                locInput.placeholder = "Location (e.g. A-101)";
+            }
+        }
+
+        function processScannedUserId(userId, action = null) {
+            if (!userId) return;
+            userId = userId.toString().trim();
+            const index = state.members.findIndex(m => m.userId === userId);
+
             if (index === -1) {
-                // Check if the scanned code matches a Task name for quick toggle
-                const taskIndex = state.tasks.findIndex(t => t.text.toLowerCase() === userId.toLowerCase());
-                if (taskIndex !== -1) {
-                    const t = state.tasks[taskIndex];
-                    if (!t.startTime) startTimer(taskIndex);
-                    else if (!t.completed) stopTimer(taskIndex);
-                    
-                    if (document.getElementById('scanOverlay').classList.contains('show')) {
-                        toggleScanOverlay();
-                    }
-                    saveData();
-                    return;
-                }
-                alert("ID not found in Members or Tasks!");
+                alert("User ID not found!");
                 return;
             }
 
             pendingUserId = userId;
             const member = state.members[index];
+
+            // Productivity Mode Auto-Toggle
+            const isProductivityVisible = !document.getElementById('productivitySection').classList.contains('hidden');
+            if (isProductivityVisible) {
+                const activeTaskIdx = state.tasks.findIndex(t => t.userId === userId && !t.completed);
+                
+                // Check for Stop action (explicit or toggle)
+                if (action === 'stop' || (action === null && activeTaskIdx !== -1)) {
+                    if (activeTaskIdx === -1) {
+                        alert("No active task found for this user.");
+                    } else {
+                        stopTimer(activeTaskIdx);
+                    }
+                } 
+                // Check for Start action (explicit or toggle)
+                else if (action === 'start' || (action === null && activeTaskIdx === -1)) {
+                    if (activeTaskIdx !== -1) {
+                        alert("User already has an active task!");
+                    } else {
+                        if (currentBinType === 'Pick') {
+                            document.getElementById('zoneModal').classList.remove('hidden');
+                        } else {
+                            const loc = document.getElementById('locationInput').value.trim();
+                            if (!loc) {
+                                alert("Please enter a Location ID first!");
+                            } else {
+                                state.tasks.push({
+                                    location: loc,
+                                    binType: 'Reserved',
+                                    userId: userId,
+                                    userName: member.name,
+                                    startTime: new Date().toISOString(),
+                                    completed: false
+                                });
+                                document.getElementById('locationInput').value = ''; // Reset for next location cycle
+                            }
+                        }
+                    }
+                }
+                if (document.getElementById('scanOverlay').classList.contains('show')) toggleScanOverlay();
+                document.getElementById('taskInput').value = '';
+                saveData();
+                return;
+            }
+
             document.getElementById('scannedMemberName').innerText = member.name;
             document.getElementById('scannedMemberId').innerText = `ID: ${member.userId} | Role: ${member.role}`;
             
@@ -1389,6 +1482,7 @@
         function executeScanAction(action) {
             if (!pendingUserId) return;
             const index = state.members.findIndex(m => m.userId === pendingUserId);
+            const member = state.members[index];
             
             if (action === 'Present') {
                 const now = new Date();
@@ -1405,13 +1499,9 @@
             } else if (action === 'Break In') {
                 updateStatus(index, 'Present');
             } else if (action === 'Task Start') {
-                // Start the first available pending task
-                const taskIdx = state.tasks.findIndex(t => !t.startTime);
-                if (taskIdx !== -1) startTimer(taskIdx);
+                // Handled directly in processScannedUserId
             } else if (action === 'Task Stop') {
-                // Stop the currently running task
-                const taskIdx = state.tasks.findIndex(t => t.startTime && !t.completed);
-                if (taskIdx !== -1) stopTimer(taskIdx);
+                // Handled directly in processScannedUserId
             } else {
                 updateStatus(index, action);
             }
@@ -1434,13 +1524,6 @@
             const scanInput = document.getElementById('scanInput');
             const userId = scanInput.value.trim();
             if (!userId) return;
-
-            if (status.startsWith('Task')) {
-                pendingUserId = userId; // Reuse this to find context
-                executeScanAction(status);
-                scanInput.value = '';
-                return;
-            }
 
             const index = state.members.findIndex(m => m.userId === userId);
             if (index === -1) return alert("User ID not found!");
@@ -1581,38 +1664,71 @@
         }
 
         // Productivity Logic
-        function addTask() {
-            const input = document.getElementById('taskInput');
-            if (!input.value) return;
-            state.tasks.push({
-                text: input.value,
-                completed: false,
-                startTime: null,
-                endTime: null
-            });
-            input.value = '';
-            saveData();
-        }
-
         function startTimer(index) {
             state.tasks[index].startTime = new Date().toISOString();
             saveData();
         }
 
-        function stopTimer(index) {
-            state.tasks[index].endTime = new Date().toISOString();
-            state.tasks[index].completed = true;
-            saveData();
-        }
-
-        function toggleTask(index) {
-            state.tasks[index].completed = !state.tasks[index].completed;
-            saveData();
-        }
-
         function deleteTask(index) {
-            state.tasks.splice(index, 1);
+            if (confirm("Delete this cycle count record?")) {
+                state.tasks.splice(index, 1);
+                saveData();
+            }
+        }
+
+        function closeZoneModal() {
+            document.getElementById('zoneModal').classList.add('hidden');
+        }
+
+        function selectZone(zone) {
+            if (!pendingUserId) return;
+            const index = state.members.findIndex(m => m.userId === pendingUserId);
+            const member = state.members[index];
+
+            state.tasks.push({
+                location: zone,
+                binType: 'Pick',
+                userId: pendingUserId,
+                userName: member.name,
+                startTime: new Date().toISOString(),
+                completed: false
+            });
+            closeZoneModal();
             saveData();
+        }
+
+        let currentTaskStoppingIndex = -1;
+        function stopTimer(index) {
+            currentTaskStoppingIndex = index;
+            const task = state.tasks[index];
+            
+            document.getElementById('qtyModalTitle').innerText = `End Count: ${task.location}`;
+            document.getElementById('modalQtyInput').value = '';
+            document.getElementById('modalSkuInput').value = '';
+            
+            document.getElementById('quantityModal').classList.remove('hidden');
+            document.getElementById('modalQtyInput').focus();
+        }
+
+        function saveQuantityData() {
+            const qty = document.getElementById('modalQtyInput').value;
+            const sku = document.getElementById('modalSkuInput').value;
+            
+            if (!qty) return alert("Please enter the total quantity counted.");
+            
+            const idx = currentTaskStoppingIndex;
+            state.tasks[idx].qty = qty;
+            state.tasks[idx].skuCount = sku || 0;
+            state.tasks[idx].endTime = new Date().toISOString();
+            state.tasks[idx].completed = true;
+            
+            closeQuantityModal();
+            saveData();
+        }
+
+        function closeQuantityModal() {
+            document.getElementById('quantityModal').classList.add('hidden');
+            currentTaskStoppingIndex = -1;
         }
 
         function calculateDuration(start, end) {
@@ -1890,10 +2006,13 @@
                 return `
                 <li>
                     <div class="col-info">
-                        <span class="${t.completed ? 'task-done' : ''}" style="font-weight: 700;">${t.text}</span>
+                        <span class="${t.completed ? 'task-done' : ''}" style="font-weight: 700; display:block">${t.location} 
+                            <small style="font-weight:400; color:var(--primary)">[${t.binType || 'Pick'}]</small></span>
+                        <div style="font-size: 0.7rem; color: var(--text-light)">${t.userName} (ID: ${t.userId})</div>
                     </div>
                     <div class="col-status">
                         <span class="status-badge ${statusClass}">${statusLabel}</span>
+                        ${t.qty ? `<div style="font-size:0.65rem; font-weight:700; margin-top:2px">Qty: ${t.qty} | SKU: ${t.skuCount || 0}</div>` : ''}
                     </div>
                     <div class="col-date">${sTime}</div>
                     <div class="col-date">${eTime}</div>
