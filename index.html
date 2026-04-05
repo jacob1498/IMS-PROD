@@ -1119,11 +1119,16 @@
             members: [],
             historyFilterFromDate: '',
             historyFilterToDate: '',
-            tasks: []
+            tasks: [],
+            activeMainTab: 'home',
+            activeHomeTab: 'attendance',
+            activeAttendanceSubTab: 'checkin',
+            activeProductivitySubTab: 'active',
+            activeSummarySubTab: 'shift'
         };
 
-        let activeProductivitySubTab = 'active';
-        let activeSummarySubTab = 'shift';
+        let activeProductivitySubTab = state.activeProductivitySubTab || 'active';
+        let activeSummarySubTab = state.activeSummarySubTab || 'shift';
         // Runtime display limits for pagination/load more
         let displayLimits = { checkin: 10, history: 10, register: 10, prodHistory: 10 };
 
@@ -1167,6 +1172,7 @@
         }
 
         function switchFooterTab(tab) {
+            state.activeMainTab = tab;
             // Manage main views
             const homeView = document.getElementById('homeView');
             const summarySection = document.getElementById('summarySection');
@@ -1226,10 +1232,11 @@
             if(headerTitle) headerTitle.innerText = titles[tab];
 
             if (document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
-            render(); 
+            saveData(); 
         }
 
         function switchDashboardTab(tab) {
+            state.activeHomeTab = tab;
             const attSection = document.getElementById('attendanceSection');
             const prodSection = document.getElementById('productivitySection');
             
@@ -1252,23 +1259,27 @@
             if (sideAttSub) {
                 sideAttSub.classList.toggle('hidden', tab !== 'attendance');
             }
+            saveData();
         }
 
         function switchProductivitySubTab(tab) {
             activeProductivitySubTab = tab;
+            state.activeProductivitySubTab = tab;
             document.getElementById('activeProdTabBtn').classList.toggle('active', tab === 'active');
             document.getElementById('historyProdTabBtn').classList.toggle('active', tab === 'history');
             document.getElementById('productivityInputGroup').classList.toggle('hidden', tab !== 'active');
             document.getElementById('prodHistoryControls').classList.toggle('hidden', tab !== 'history');
-            render();
+            saveData();
         }
 
         function switchSummarySubTab(tab) {
             activeSummarySubTab = tab;
-            render();
+            state.activeSummarySubTab = tab;
+            saveData();
         }
 
         function switchAttendanceSubTab(tab) {
+            state.activeAttendanceSubTab = tab;
             document.getElementById('checkinSubSection').classList.toggle('hidden', tab !== 'checkin');
             document.getElementById('historySubSection').classList.toggle('hidden', tab !== 'history');
             document.getElementById('registerSubSection').classList.toggle('hidden', tab !== 'register');
@@ -1280,7 +1291,7 @@
 
             // Reset display limits when switching sub-tabs for a fresh view
             displayLimits = { checkin: 10, history: 10, register: 10 };
-            render();
+            saveData();
 
             // Sync Sidebar Tabs
             if (document.getElementById('side-checkinSubTabBtn')) {
@@ -2278,6 +2289,13 @@
         if (toFilter) toFilter.value = state.historyFilterToDate || '';
 
         // Initial Load
+        // Restore UI state from storage
+        switchDashboardTab(state.activeHomeTab || 'attendance');
+        switchFooterTab(state.activeMainTab || 'home');
+        switchAttendanceSubTab(state.activeAttendanceSubTab || 'checkin');
+        switchProductivitySubTab(state.activeProductivitySubTab || 'active');
+        switchSummarySubTab(state.activeSummarySubTab || 'shift');
+
         render();
     </script>
 </body>
