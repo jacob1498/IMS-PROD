@@ -2237,7 +2237,6 @@
             const filteredRegister = state.members
                 .map((m, i) => ({ ...m, index: i }))
                 .filter(m => 
-                    (m.name.toLowerCase().includes(globalSearch) || m.userId.toLowerCase().includes(globalSearch))
                     (m.name.toLowerCase().includes(globalSearch) || (m.userid && m.userid.toLowerCase().includes(globalSearch)))
                 );
 
