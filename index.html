@@ -2503,6 +2503,20 @@
             currentTaskStoppingIndex = -1;
         }
 
+        function toLocalISO(dateInput) {
+            if (!dateInput) return null;
+            let d = dateInput;
+            // Force local interpretation for ISO strings (YYYY-MM-DD) to prevent UTC shifts
+            if (typeof d === 'string' && d.includes('-') && !d.includes(':')) {
+                d = d.replace(/-/g, '/');
+            }
+            const date = new Date(d);
+            if (isNaN(date.getTime())) return null;
+            return date.getFullYear() + '-' + 
+                   String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(date.getDate()).padStart(2, '0');
+        }
+
         function calculateDuration(start, end) {
             if (!start) return '--';
             const sTime = new Date(start);
@@ -2525,17 +2539,14 @@
             const scheduleTableWrapper = document.getElementById('scheduleTableWrapper');
             if (scheduleList) {
                 const filteredSchedules = state.schedules.filter(s => {
-                    if (!s.date) return true;
-                    const schedDate = new Date(s.date);
-                    if (isNaN(schedDate.getTime())) return true; // Show record if date is unparseable
+                    const schedISO = toLocalISO(s.date);
+                    if (!schedISO) return true;
 
                     if (state.scheduleFilterFromDate) {
-                        if (schedDate < new Date(state.scheduleFilterFromDate)) return false;
+                        if (schedISO < toLocalISO(state.scheduleFilterFromDate)) return false;
                     }
                     if (state.scheduleFilterToDate) {
-                        const toLimit = new Date(state.scheduleFilterToDate);
-                        toLimit.setHours(23, 59, 59);
-                        if (schedDate > toLimit) return false;
+                        if (schedISO > toLocalISO(state.scheduleFilterToDate)) return false;
                     }
                     return true;
                 });
@@ -2922,10 +2933,10 @@
 
             const getShiftData = (s) => {
                 const todayStr = today.toLocaleDateString();
+                const todayISO = toLocalISO(today);
                 const counterRoles = ['Direct Counter', 'Back up'];
                 
                 // Filter for Direct Counters/Back ups who clocked into this shift today
-                // Includes everyone (Present, On Break, or Away) for the "Total" metric
                 const shiftMembers = state.members.filter(m => 
                     m.shift === s && 
                     m.date === todayStr && 
@@ -2935,9 +2946,7 @@
                 let req = 0;
                 if (state.schedules && state.schedules.length > 0) {
                     const matchingScheds = state.schedules.filter(sched => {
-                        const sDate = new Date(sched.date);
-                        sDate.setHours(0, 0, 0, 0);
-                        return sDate.getTime() === today.getTime() && 
+                        return toLocalISO(sched.date) === todayISO && 
                                sched.shift.toLowerCase().includes(s.toLowerCase());
                     });
                     if (matchingScheds.length > 0) {
@@ -2945,7 +2954,7 @@
                         req = Math.max(...matchingScheds.map(sched => parseInt(sched.hc) || 0), 0);
                     }
                 }
-                console.log(`Shift: ${s}, Requirement (req): ${req}, Total Clocked In: ${shiftMembers.length}`);
+                console.log(`Shift: ${s}, Target Date: ${todayISO}, Requirement: ${req}, Clocked In: ${shiftMembers.length}`);
 
                 const total = shiftMembers.length; // Cumulative count (all who clocked in)
                 // "Present" counts everyone currently on site (not 'Away')
