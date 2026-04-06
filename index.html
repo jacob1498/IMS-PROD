@@ -1028,6 +1028,18 @@
             <div id="reportsSection" class="hidden">
                 <h2 style="border-bottom:none">Reports & Analytics</h2>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 10px;">
+                    <div class="card" style="border-top: 4px solid var(--success);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                            <span class="material-symbols-outlined" style="color:var(--success); font-size: 32px;">inventory_2</span>
+                            <h3 style="margin:0">Reserved Summary</h3>
+                        </div>
+                        <div style="text-align: center; padding: 10px 0;">
+                            <div id="reservedBinTotal" style="font-size: 2.5rem; font-weight: 800; color: var(--success);">0</div>
+                            <div style="font-size: 0.8rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Unique Reserved Bins Done</div>
+                        </div>
+                        <p style="font-size: 0.75rem; color: var(--text-light); margin-top: 15px; text-align: center;">Total unique locations completed in Reserved areas.</p>
+                    </div>
+
                     <div class="card" style="border-top: 4px solid var(--primary);">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
                             <span class="material-symbols-outlined" style="color:var(--primary); font-size: 32px;">assessment</span>
@@ -2924,6 +2936,13 @@
             if(document.getElementById('sumBreak')) document.getElementById('sumBreak').innerText = breakCount;
             if(document.getElementById('sumLongBreak')) document.getElementById('sumLongBreak').innerText = longBreakCount;
 
+            // Update Reports Reserved Summary
+            if (state.tasks) {
+                const reservedBinsDone = state.tasks.filter(t => t.completed && t.bintype === 'Reserved');
+                const uniqueReservedBins = new Set(reservedBinsDone.map(t => (t.location || '').toString().toLowerCase().trim()).filter(l => l !== '')).size;
+                if (document.getElementById('reservedBinTotal')) document.getElementById('reservedBinTotal').innerText = uniqueReservedBins;
+            }
+
             // Update Cycle Count Dashboard Stats
             const counterRoles = ['Direct Counter', 'Back up'];
             const allCounters = state.members.filter(m => counterRoles.includes(m.role));
@@ -2932,7 +2951,7 @@
             const activeCounterIds = new Set(activeTasks.map(t => t.userid));
             
             const totalActiveCounters = allCounters.filter(m => activeCounterIds.has(m.userid)).length;
-            const totalInactiveCounters = allCounters.length - totalActiveCounters;
+            const totalInactiveCounters = allCounters.filter(m => !activeCounterIds.has(m.userid) && m.status !== 'Away').length;
             
             const longCycleCount = activeTasks.filter(t => {
                 const m = allCounters.find(mem => mem.userid === t.userid);
