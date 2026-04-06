@@ -665,6 +665,21 @@
         .schedule-row > div:last-child { border-right: none; }
         .schedule-row:nth-child(even) { background-color: #f8fafc !important; }
         
+        /* Schedule Visual Board */
+        .sched-visual-grid { display: flex; flex-direction: column; gap: 15px; }
+        .sched-day-card { background: #f8fafc; border-radius: 10px; padding: 15px; border: 1px solid var(--border); }
+        .sched-day-card.today { border-color: var(--primary); background: #f0f9ff; }
+        .sched-day-header { font-size: 0.75rem; font-weight: 800; color: var(--primary); margin-bottom: 12px; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 0.05em; }
+        .sched-shift-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .sched-shift-item { background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px; cursor: pointer; transition: all 0.2s; min-height: 85px; }
+        .sched-shift-item:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+        .sched-shift-name { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); }
+        .sched-shift-hc { font-size: 1.2rem; font-weight: 800; color: var(--text); }
+        .sched-area-tag { font-size: 0.6rem; background: var(--bg); padding: 2px 6px; border-radius: 4px; display: inline-block; font-weight: 600; }
+        .gantt-bar-bg { height: 6px; background: var(--border); border-radius: 3px; margin-top: 5px; overflow: hidden; }
+        .gantt-bar-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width 0.3s; }
+        .gantt-bar-fill.success { background: var(--success); }
+
         @media (max-width: 768px) {
             #scheduleSection .table-header { display: flex !important; }
             #scheduleSection .table-header > div { font-size: 0.55rem !important; padding: 8px 2px !important; }
@@ -677,6 +692,7 @@
                 box-shadow: none !important;
             }
             .schedule-row > div { font-size: 0.6rem !important; padding: 6px 2px !important; }
+            .sched-shift-container { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -1105,13 +1121,22 @@
 
             <!-- Schedule Placeholder -->
             <div id="scheduleSection" class="hidden">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 style="border:none; padding:0; margin:0">Team Schedule</h2>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="file" id="scheduleCsvInput" accept=".csv" style="display: none;" onchange="handleScheduleUpload(event)">
-                        <button onclick="document.getElementById('scheduleCsvInput').click()">
-                            <span class="material-symbols-outlined">upload_file</span>
-                            Upload CSV
+                <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2 style="border:none; padding:0; margin:0">Team Schedule</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="file" id="scheduleCsvInput" accept=".csv" style="display: none;" onchange="handleScheduleUpload(event)">
+                            <button onclick="document.getElementById('scheduleCsvInput').click()">
+                                <span class="material-symbols-outlined">upload_file</span> Upload CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tab-group" style="margin: 0;">
+                        <button id="schedTableViewBtn" class="active" onclick="switchScheduleView('table')" style="font-size: 0.75rem; padding: 6px 12px;">
+                            <span class="material-symbols-outlined" style="font-size:16px">table_chart</span> Table
+                        </button>
+                        <button id="schedVisualViewBtn" onclick="switchScheduleView('visual')" style="font-size: 0.75rem; padding: 6px 12px;">
+                            <span class="material-symbols-outlined" style="font-size:16px">view_kanban</span> Shift Board
                         </button>
                     </div>
                 </div>
@@ -1136,6 +1161,7 @@
                         </div>
                         <ul id="scheduleList" style="padding-bottom: 0;"></ul>
                     </div>
+                    <div id="scheduleVisualWrapper" class="hidden sched-visual-grid" style="padding: 15px;"></div>
                 </div>
             </div>
 
@@ -1374,7 +1400,8 @@
             activeHomeTab: 'attendance',
             activeAttendanceSubTab: 'checkin',
             activeProductivitySubTab: 'active',
-            activeSummarySubTab: 'shift'
+            activeSummarySubTab: 'shift',
+            scheduleView: 'table'
         };
 
         let state = {
@@ -1544,6 +1571,13 @@
             if (document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
             if (tab === 'reports') setTimeout(renderCycleCountChart, 100);
             saveData(); 
+        }
+
+        function switchScheduleView(view) {
+            state.scheduleView = view;
+            document.getElementById('schedTableViewBtn').classList.toggle('active', view === 'table');
+            document.getElementById('schedVisualViewBtn').classList.toggle('active', view === 'visual');
+            saveData();
         }
 
         function switchDashboardTab(tab) {
@@ -2584,6 +2618,59 @@
             const scheduleList = document.getElementById('scheduleList');
             const scheduleEmptyState = document.getElementById('scheduleEmptyState');
             const scheduleTableWrapper = document.getElementById('scheduleTableWrapper');
+            const scheduleVisualWrapper = document.getElementById('scheduleVisualWrapper');
+
+            if (state.scheduleView === 'visual') {
+                scheduleTableWrapper.classList.add('hidden');
+                scheduleVisualWrapper.classList.remove('hidden');
+                const grouped = {};
+                const todayISO = getOperationalISO(new Date());
+
+                filteredSchedules.forEach(s => {
+                    if (!grouped[s.date]) grouped[s.date] = [];
+                    grouped[s.date].push(s);
+                });
+
+                const sortedDates = Object.keys(grouped).sort((a,b) => b.localeCompare(a));
+                scheduleVisualWrapper.innerHTML = sortedDates.map(date => {
+                    const dayScheds = grouped[date];
+                    const shifts = ['1st', '2nd', '3rd'];
+                    const isToday = toLocalISO(date) === todayISO;
+                    
+                    return `
+                        <div class="sched-day-card ${isToday ? 'today' : ''}">
+                            <div class="sched-day-header"><span>${date}</span>${isToday ? '<span style="color:var(--primary)">Today</span>' : ''}</div>
+                            <div class="sched-shift-container">
+                                ${shifts.map(sh => {
+                                    const shScheds = dayScheds.filter(s => s.shift.toLowerCase().includes(sh.toLowerCase()));
+                                    const totalReq = shScheds.reduce((sum, s) => sum + (parseInt(s.hc) || 0), 0);
+                                    const areas = Array.from(new Set(shScheds.map(s => s.area))).filter(Boolean);
+                                    let fulfillmentHtml = '';
+                                    if (isToday) {
+                                        const actual = getShiftData(sh).present;
+                                        const pct = totalReq > 0 ? Math.min(100, (actual / totalReq) * 100) : 0;
+                                        fulfillmentHtml = `
+                                            <div style="margin-top: auto;">
+                                                <div style="display:flex; justify-content:space-between; font-size:0.55rem; font-weight:700; margin-bottom:2px"><span>PRESENT: ${actual}</span><span>${Math.round(pct)}%</span></div>
+                                                <div class="gantt-bar-bg"><div class="gantt-bar-fill ${pct >= 100 ? 'success' : ''}" style="width: ${pct}%"></div></div>
+                                            </div>`;
+                                    }
+                                    return `
+                                        <div class="sched-shift-item" onclick="showShiftMemberList('${sh}', 'total')">
+                                            <div class="sched-shift-name">${sh} Shift</div>
+                                            <div class="sched-shift-hc">${totalReq} <small style="font-size:0.6rem; color:var(--text-light)">REQ</small></div>
+                                            <div style="display:flex; flex-wrap:wrap; gap:4px">${areas.map(a => `<span class="sched-area-tag">${a}</span>`).join('')}</div>
+                                            ${fulfillmentHtml}
+                                        </div>`;
+                                }).join('')}
+                            </div>
+                        </div>`;
+                }).join('');
+            } else {
+                scheduleTableWrapper.classList.remove('hidden');
+                scheduleVisualWrapper.classList.add('hidden');
+            }
+
             if (scheduleList) {
                 const filteredSchedules = state.schedules.filter(s => {
                     const schedISO = toLocalISO(s.date);
