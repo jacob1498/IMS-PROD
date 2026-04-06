@@ -2873,11 +2873,16 @@
 
             const getShiftData = (s) => {
                 const todayStr = today.toLocaleDateString();
-                // "Total" includes all members who clocked in for this shift today
-                // even if they have already timed out (status: 'Away')
-                const shiftMembers = state.members.filter(m => m.shift === s && m.date === todayStr);
+                const counterRoles = ['Direct Counter', 'Back up'];
                 
-                // Calculate dynamic requirement from schedules for today and this shift
+                // Filter for Direct Counters/Back ups who clocked into this shift today
+                // Includes everyone (Present, On Break, or Away) for the "Total" metric
+                const shiftMembers = state.members.filter(m => 
+                    m.shift === s && 
+                    m.date === todayStr && 
+                    counterRoles.includes(m.role)
+                );
+                
                 let req = 0;
                 if (state.schedules && state.schedules.length > 0) {
                     const matchingScheds = state.schedules.filter(sched => {
@@ -2887,13 +2892,13 @@
                                sched.shift.toLowerCase().includes(s.toLowerCase());
                     });
                     if (matchingScheds.length > 0) {
-                        // Use max count found for the shift instead of summing brackets
-                        req = Math.max(...matchingScheds.map(sched => parseInt(sched.hc) || 0));
+                        // Use the highest requirement found for this shift (Peak Requirement)
+                        req = Math.max(...matchingScheds.map(sched => parseInt(sched.hc) || 0), 0);
                     }
                 }
 
-                const total = shiftMembers.length; // Cumulative headcount
-                // "Present" counts all members currently on site (not 'Away' / Timed Out)
+                const total = shiftMembers.length; // Cumulative count (all who clocked in)
+                // "Present" counts everyone currently on site (not 'Away')
                 const present = shiftMembers.filter(m => m.status !== 'Away').length; 
                 return {
                     total,
