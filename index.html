@@ -2223,8 +2223,8 @@
                 });
             } else if (type === 'inactive') {
                 titleText = "Inactive Counters";
-                list = allCounters.filter(m => !activeCounterIds.has(m.userid)).map(m => ({
-                    ...m, subText: m.status === 'Away' ? 'Not Clocked In' : (m.status === 'On Break' ? 'On Break' : 'Available for Cycle Count')
+                list = allCounters.filter(m => !activeCounterIds.has(m.userid) && m.status !== 'Away').map(m => ({
+                    ...m, subText: m.status === 'On Break' ? 'On Break' : 'Available for Cycle Count'
                 }));
             } else if (type === 'long') {
                 titleText = "Long Cycle Sessions (> 1Hr)";
@@ -2861,21 +2861,28 @@
 
             // Update Summary Stats
             const totalMembers = state.members.length;
-            const todayStr = new Date().toLocaleDateString();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
             const getShiftData = (s) => {
-                const shiftMembers = state.members.filter(m => m.shift === s && m.date === todayStr);
+                // Only count members currently on site (excluding those who timed out)
+                const onSiteMembers = state.members.filter(m => m.shift === s && m.status !== 'Away');
                 
                 // Calculate dynamic requirement from schedules for today and this shift
                 let req = 0;
                 if (state.schedules && state.schedules.length > 0) {
                     req = state.schedules
-                        .filter(sched => sched.date === todayStr && sched.shift.toLowerCase().includes(s.toLowerCase()))
+                        .filter(sched => {
+                            const sDate = new Date(sched.date);
+                            sDate.setHours(0, 0, 0, 0);
+                            return sDate.getTime() === today.getTime() && 
+                                   sched.shift.toLowerCase().includes(s.toLowerCase());
+                        })
                         .reduce((sum, sched) => sum + (parseInt(sched.hc) || 0), 0);
                 }
 
-                const total = shiftMembers.length; // Present + Break + Timed Out
-                const present = shiftMembers.filter(m => m.status === 'Present').length; // Active (Not on break)
+                const total = onSiteMembers.length; // Currently On-Site (Present + On Break)
+                const present = onSiteMembers.filter(m => m.status === 'Present').length; // Active Workers
                 return {
                     total,
                     present,
