@@ -916,7 +916,7 @@
                 </div>
                 <div class="table-header" style="margin-top: 10px;">
                     <div class="col-info">Location / User</div>
-                    <div class="col-status">Status / Qty</div>
+                    <div class="col-status">Status / SKU</div>
                     <div class="col-date">Start</div>
                     <div class="col-date">End</div>
                     <div class="col-duration">Mins</div>
@@ -1076,6 +1076,14 @@
                         </button>
                     </div>
                 </div>
+                <div class="input-group" style="margin-bottom: 15px; flex-wrap: wrap;">
+                    <small style="color:var(--text-light); margin-bottom: 5px; width: 100%;">Filter Schedule by Date Range:</small>
+                    <input type="date" id="schedFromDate" onchange="updateScheduleFilterDate('from', this.value)" style="flex: 1; min-width: 120px;">
+                    <input type="date" id="schedToDate" onchange="updateScheduleFilterDate('to', this.value)" style="flex: 1; min-width: 120px;">
+                    <button onclick="clearScheduleDateFilter()" style="background: #64748b; padding: 8px 12px;">
+                        <span class="material-symbols-outlined" style="font-size:18px">close</span> Clear
+                    </button>
+                </div>
                 <div id="scheduleContainer" class="card">
                     <div id="scheduleEmptyState" class="empty-state">No schedule data uploaded yet. Please upload a CSV with date, Area, shift, Shift Time, and required hc.</div>
                     <div id="scheduleTableWrapper" class="hidden">
@@ -1154,10 +1162,6 @@
                     <button onclick="closeQuantityModal()" style="background:none; color:var(--text-light); padding:0"><span class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="input-group" style="flex-direction: column; gap: 15px;">
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Total Items Counted</label>
-                        <input type="number" id="modalQtyInput" placeholder="Enter total units" style="width: 100%; box-sizing: border-box;">
-                    </div>
                     <div style="display: flex; flex-direction: column; gap: 5px;">
                         <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Unique SKUs / Items</label>
                         <input type="number" id="modalSkuInput" placeholder="Enter count of SKUs" style="width: 100%; box-sizing: border-box;">
@@ -1338,6 +1342,8 @@
             members: [],
             historyFilterFromDate: '',
             historyFilterToDate: '',
+            scheduleFilterFromDate: '',
+            scheduleFilterToDate: '',
             tasks: [],
             schedules: [],
             ...uiSettings
@@ -2072,6 +2078,20 @@
             else showToast("Schedule deleted.", "info");
         }
 
+        function updateScheduleFilterDate(type, value) {
+            if (type === 'from') state.scheduleFilterFromDate = value;
+            else if (type === 'to') state.scheduleFilterToDate = value;
+            render();
+        }
+
+        function clearScheduleDateFilter() {
+            state.scheduleFilterFromDate = '';
+            state.scheduleFilterToDate = '';
+            document.getElementById('schedFromDate').value = '';
+            document.getElementById('schedToDate').value = '';
+            render();
+        }
+
         function showMemberDetails(index) {
             const m = state.members[index];
             const body = document.getElementById('modalBody');
@@ -2269,9 +2289,8 @@
                 const member = state.members.find(m => m.userid === task.userid);
                 const role = member ? member.role : 'Other';
                 if (!roleStats[role]) {
-                    roleStats[role] = { units: 0, skus: 0 };
+                    roleStats[role] = { skus: 0 };
                 }
-                roleStats[role].units += parseInt(task.qty || 0);
                 roleStats[role].skus += parseInt(task.skucount || 0);
             });
 
@@ -2287,7 +2306,6 @@
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'Total Units', data: labels.map(l => roleStats[l].units), backgroundColor: '#6366f1', borderRadius: 4 },
                         { label: 'Unique SKUs', data: labels.map(l => roleStats[l].skus), backgroundColor: '#22c55e', borderRadius: 4 }
                     ]
                 },
@@ -2326,7 +2344,7 @@
 
             setTimeout(() => {
                 try {
-                    const headers = ["Location", "Bin Type", "User ID", "User Name", "Status", "Start Time", "End Time", "Duration (mins)", "Qty", "SKU Count"];
+                    const headers = ["Location", "Bin Type", "User ID", "User Name", "Status", "Start Time", "End Time", "Duration (mins)", "SKU Count"];
                     const csvRows = [headers.join(",")];
                     state.tasks.forEach(t => {
                         const duration = calculateDuration(t.starttime, t.endtime).replace('m', '');
@@ -2334,7 +2352,7 @@
                             t.location, t.bintype, t.userid, t.username, t.completed ? 'Completed' : 'Active',
                             t.starttime ? new Date(t.starttime).toLocaleString() : '',
                             t.endtime ? new Date(t.endtime).toLocaleString() : '',
-                            duration, t.qty || 0, t.skucount || 0
+                            duration, t.skucount || 0
                         ];
                         csvRows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
                     });
@@ -2387,25 +2405,22 @@
             const task = state.tasks[index];
             
             document.getElementById('qtyModalTitle').innerText = `End Count: ${task.location}`;
-            document.getElementById('modalQtyInput').value = '';
             document.getElementById('modalSkuInput').value = '';
             
             document.getElementById('quantityModal').classList.remove('hidden');
-            document.getElementById('modalQtyInput').focus();
+            document.getElementById('modalSkuInput').focus();
         }
 
         async function saveQuantityData() {
-            const qty = document.getElementById('modalQtyInput').value;
             const sku = document.getElementById('modalSkuInput').value;
             
-            if (!qty) {
-                showToast("Enter quantity counted!", "error");
+            if (!sku) {
+                showToast("Enter SKU count!", "error");
                 return;
             }
             
             const task = state.tasks[currentTaskStoppingIndex];
             await supabaseClient.from('tasks').update({
-                qty: qty,
                 skucount: sku || 0,
                 endtime: new Date().toISOString(),
                 completed: true
@@ -2441,10 +2456,26 @@
             const scheduleEmptyState = document.getElementById('scheduleEmptyState');
             const scheduleTableWrapper = document.getElementById('scheduleTableWrapper');
             if (scheduleList) {
-                if (state.schedules && state.schedules.length > 0) {
+                const filteredSchedules = state.schedules.filter(s => {
+                    if (!s.date) return true;
+                    const schedDate = new Date(s.date);
+                    if (isNaN(schedDate.getTime())) return true; // Show record if date is unparseable
+
+                    if (state.scheduleFilterFromDate) {
+                        if (schedDate < new Date(state.scheduleFilterFromDate)) return false;
+                    }
+                    if (state.scheduleFilterToDate) {
+                        const toLimit = new Date(state.scheduleFilterToDate);
+                        toLimit.setHours(23, 59, 59);
+                        if (schedDate > toLimit) return false;
+                    }
+                    return true;
+                });
+
+                if (filteredSchedules.length > 0) {
                     if (scheduleEmptyState) scheduleEmptyState.classList.add('hidden');
                     if (scheduleTableWrapper) scheduleTableWrapper.classList.remove('hidden');
-                    scheduleList.innerHTML = state.schedules.map(s => `
+                    scheduleList.innerHTML = filteredSchedules.map(s => `
                         <li class="schedule-row">
                             <div style="flex: 1.2 1 0%; font-weight: 600;">${s.date}</div>
                             <div style="flex: 1 1 0%;">${s.area}</div>
@@ -2775,7 +2806,7 @@
                     </div>
                     <div class="col-status">
                         <span class="status-badge ${statusClass}">${statusLabel}</span>
-                        ${t.qty ? `<div style="font-size:0.65rem; font-weight:700; margin-top:2px">Qty: ${t.qty} | SKU: ${t.skucount || 0}</div>` : ''}
+                        ${t.skucount ? `<div style="font-size:0.65rem; font-weight:700; margin-top:2px">SKU: ${t.skucount}</div>` : ''}
                     </div>
                     <div class="col-date">${sTime}</div>
                     <div class="col-date">${eTime}</div>
