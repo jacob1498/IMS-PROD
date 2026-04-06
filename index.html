@@ -2219,27 +2219,34 @@
                 titleText = "Active Counters";
                 list = allCounters.filter(m => activeCounterIds.has(m.userid)).map(m => {
                     const task = activeTasks.find(t => t.userid === m.userid);
-                    return { ...m, subText: `${task.location} (${task.binType}) • Running: ${calculateDuration(task.startTime)}` };
+                    return { ...m, subText: `${task.location} (${task.bintype || 'Pick'}) • Running: ${calculateDuration(task.starttime)}` };
                 });
             } else if (type === 'inactive') {
                 titleText = "Inactive Counters";
-                list = allCounters.filter(m => !activeCounterIds.has(m.userid) && m.status !== 'Away').map(m => ({
-                    ...m, subText: m.status === 'On Break' ? 'On Break' : 'Available for Cycle Count'
-                }));
+                const completedTasks = state.tasks.filter(t => t.completed);
+                list = allCounters.filter(m => !activeCounterIds.has(m.userid) && m.status !== 'Away').map(m => {
+                    const userTasks = completedTasks.filter(t => t.userid === m.userid);
+                    const lastTask = userTasks.sort((a, b) => new Date(b.endtime) - new Date(a.endtime))[0];
+                    let subText = m.status === 'On Break' ? 'On Break' : 'Available for Cycle Count';
+                    if (lastTask) {
+                        subText += ` • Last: ${calculateDuration(lastTask.starttime, lastTask.endtime)} (${new Date(lastTask.endtime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})})`;
+                    }
+                    return { ...m, subText };
+                });
             } else if (type === 'long') {
                 titleText = "Long Cycle Sessions (> 1Hr)";
                 list = allCounters.filter(m => {
                     const t = activeTasks.find(task => task.userid === m.userid);
-                    if (!t || !t.startTime) return false;
-                    const diff = (now - new Date(t.startTime)) / 3600000;
+                    if (!t || !t.starttime) return false;
+                    const diff = (now - new Date(t.starttime)) / 3600000;
                     return diff > 1;
                 }).map(m => {
                     const task = activeTasks.find(t => t.userid === m.userid);
-                    return { ...m, subText: `${task.location} (${task.bintype}) • Session: ${calculateDuration(task.startTime)}`, isAlert: true };
+                    return { ...m, subText: `${task.location} (${task.bintype}) • Session: ${calculateDuration(task.starttime)}`, isAlert: true };
                 });
             } else if (type === 'break') {
                 titleText = "Designated Counters on Break";
-                list = allCounters.filter(m => m.status === 'On Break').map(m => ({ ...m, subText: `Break started at: ${m.breakOut}` }));
+                list = allCounters.filter(m => m.status === 'On Break').map(m => ({ ...m, subText: `Break started at: ${m.breakout}` }));
             }
 
             const titleEl = document.querySelector('#detailsModal h3');
@@ -2865,24 +2872,29 @@
             today.setHours(0, 0, 0, 0);
 
             const getShiftData = (s) => {
-                // Only count members currently on site (excluding those who timed out)
-                const onSiteMembers = state.members.filter(m => m.shift === s && m.status !== 'Away');
+                const todayStr = today.toLocaleDateString();
+                // "Total" includes all members who clocked in for this shift today
+                // even if they have already timed out (status: 'Away')
+                const shiftMembers = state.members.filter(m => m.shift === s && m.date === todayStr);
                 
                 // Calculate dynamic requirement from schedules for today and this shift
                 let req = 0;
                 if (state.schedules && state.schedules.length > 0) {
-                    req = state.schedules
-                        .filter(sched => {
-                            const sDate = new Date(sched.date);
-                            sDate.setHours(0, 0, 0, 0);
-                            return sDate.getTime() === today.getTime() && 
-                                   sched.shift.toLowerCase().includes(s.toLowerCase());
-                        })
-                        .reduce((sum, sched) => sum + (parseInt(sched.hc) || 0), 0);
+                    const matchingScheds = state.schedules.filter(sched => {
+                        const sDate = new Date(sched.date);
+                        sDate.setHours(0, 0, 0, 0);
+                        return sDate.getTime() === today.getTime() && 
+                               sched.shift.toLowerCase().includes(s.toLowerCase());
+                    });
+                    if (matchingScheds.length > 0) {
+                        // Use max count found for the shift instead of summing brackets
+                        req = Math.max(...matchingScheds.map(sched => parseInt(sched.hc) || 0));
+                    }
                 }
 
-                const total = onSiteMembers.length; // Currently On-Site (Present + On Break)
-                const present = onSiteMembers.filter(m => m.status === 'Present').length; // Active Workers
+                const total = shiftMembers.length; // Cumulative headcount
+                // "Present" counts all members currently on site (not 'Away' / Timed Out)
+                const present = shiftMembers.filter(m => m.status !== 'Away').length; 
                 return {
                     total,
                     present,
@@ -2962,8 +2974,8 @@
             
             const longCycleCount = activeTasks.filter(t => {
                 const m = allCounters.find(mem => mem.userid === t.userid);
-                if (!m || !t.startTime) return false;
-                const diff = (now - new Date(t.startTime)) / 3600000; // hours
+                if (!m || !t.starttime) return false;
+                const diff = (now - new Date(t.starttime)) / 3600000; // hours
                 return diff > 1;
             }).length;
 
