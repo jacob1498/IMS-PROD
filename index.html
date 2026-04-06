@@ -1971,7 +1971,7 @@
                     if (hour >= 6 && hour < 14) shift = '1st';
                     else if (hour >= 14 && hour < 22) shift = '2nd';
                     updates.timein = timeStr;
-                    updates.date = now.toLocaleDateString();
+                    updates.date = toLocalISO(now);
                     updates.shift = shift;
                 } else { updates.breakin = timeStr; }
             } else if (action === 'On Break') {
@@ -2932,14 +2932,13 @@
             today.setHours(0, 0, 0, 0);
 
             const getShiftData = (s) => {
-                const todayStr = today.toLocaleDateString();
                 const todayISO = toLocalISO(today);
                 const counterRoles = ['Direct Counter', 'Back up'];
                 
                 // Filter for Direct Counters/Back ups who clocked into this shift today
                 const shiftMembers = state.members.filter(m => 
                     m.shift === s && 
-                    m.date === todayStr && 
+                    toLocalISO(m.date) === todayISO && 
                     counterRoles.includes(m.role)
                 );
                 
