@@ -890,24 +890,51 @@
                         History
                     </button>
                 </div>
-                <div id="productivityInputGroup" class="input-group" style="flex-wrap: wrap;">
-                    <div id="binTypeToggle" style="display: flex; background: var(--bg); border-radius: 6px; padding: 2px; border: 1px solid var(--border);">
-                        <button id="btnPick" onclick="setBinType('Pick')" style="background: var(--primary); color: white; padding: 6px 12px; font-size: 0.75rem; border-radius: 4px;">Pick</button>
-                        <button id="btnRes" onclick="setBinType('Reserved')" style="background: transparent; color: var(--text-light); padding: 6px 12px; font-size: 0.75rem; border-radius: 4px;">Reserved</button>
-                    </div>
-                    <input type="text" id="locationInput" placeholder="Location (e.g. A-101)" class="hidden" style="flex: 1; min-width: 150px;">
-                    <input type="text" id="taskInput" placeholder="User ID..." onkeyup="if(event.key==='Enter') processScannedUserId(this.value)" style="flex: 1; min-width: 100px;">
-                    <button onclick="processScannedUserId(document.getElementById('taskInput').value, 'start')" style="background: var(--success);" title="Start Cycle Count">
-                        <span class="material-symbols-outlined">play_circle</span> Start
-                    </button>
-                    <button onclick="processScannedUserId(document.getElementById('taskInput').value, 'stop')" style="background: var(--text-light);" title="End Cycle Count">
-                        <span class="material-symbols-outlined">stop_circle</span> End
-                    </button>
-                    <button onclick="toggleScanOverlay()" title="Scan QR Code">
-                        <span class="material-symbols-outlined">qr_code_scanner</span>
-                        Scan
+                <div id="productivityActionRow" class="hidden" style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
+                    <button onclick="openSessionModal()" style="background: var(--primary);">
+                        <span class="material-symbols-outlined">add_circle</span>
+                        New Session
                     </button>
                 </div>
+        <!-- Productivity Session Modal -->
+        <div id="sessionModal" class="modal-overlay hidden" onclick="closeSessionModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>New Productivity Session</h3>
+                    <button onclick="closeSessionModal()" style="background:none; color:var(--text-light); padding:0"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="input-group" style="flex-direction: column; gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Bin Type</label>
+                        <div id="modalBinTypeToggle" style="display: flex; background: var(--bg); border-radius: 6px; padding: 2px; border: 1px solid var(--border);">
+                            <button id="modalBtnPick" onclick="setBinType('Pick')" style="flex:1; background: var(--primary); color: white; padding: 8px; font-size: 0.75rem; border-radius: 4px;">Pick</button>
+                            <button id="modalBtnRes" onclick="setBinType('Reserved')" style="flex:1; background: transparent; color: var(--text-light); padding: 8px; font-size: 0.75rem; border-radius: 4px;">Reserved</button>
+                        </div>
+                    </div>
+                    <div id="modalLocationGroup" class="hidden" style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Location</label>
+                        <input type="text" id="modalLocationInput" placeholder="e.g. A-101" style="width: 100%; box-sizing: border-box;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">User ID</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="modalTaskInput" placeholder="Enter ID..." onkeyup="if(event.key==='Enter') processScannedUserId(this.value)" style="flex: 1;">
+                            <button onclick="toggleScanOverlay()" style="background: var(--bg); color: var(--primary); padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
+                                <span class="material-symbols-outlined">qr_code_scanner</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                        <button onclick="processScannedUserId(document.getElementById('modalTaskInput').value, 'start')" style="background: var(--success); padding: 12px;">
+                            <span class="material-symbols-outlined">play_circle</span> Start
+                        </button>
+                        <button onclick="processScannedUserId(document.getElementById('modalTaskInput').value, 'stop')" style="background: var(--text-light); padding: 12px;">
+                            <span class="material-symbols-outlined">stop_circle</span> End
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
                 <div id="prodHistoryControls" class="hidden" style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
                     <button onclick="clearProductivityHistory()" style="background: var(--danger); font-size: 0.75rem; padding: 6px 12px;">
                         <span class="material-symbols-outlined" style="font-size:16px">delete_sweep</span>
@@ -1551,7 +1578,7 @@
             state.activeProductivitySubTab = tab;
             document.getElementById('activeProdTabBtn').classList.toggle('active', tab === 'active');
             document.getElementById('historyProdTabBtn').classList.toggle('active', tab === 'history');
-            document.getElementById('productivityInputGroup').classList.toggle('hidden', tab !== 'active');
+            document.getElementById('productivityActionRow').classList.toggle('hidden', tab !== 'active');
             document.getElementById('prodHistoryControls').classList.toggle('hidden', tab !== 'history');
             saveData();
         }
@@ -1816,21 +1843,36 @@
         let currentBinType = 'Pick';
         function setBinType(type) {
             currentBinType = type;
-            const pickBtn = document.getElementById('btnPick');
-            const resBtn = document.getElementById('btnRes');
-            const locInput = document.getElementById('locationInput');
+            const pickBtn = document.getElementById('modalBtnPick');
+            const resBtn = document.getElementById('modalBtnRes');
+            const locGroup = document.getElementById('modalLocationGroup');
             
-            pickBtn.style.background = type === 'Pick' ? 'var(--primary)' : 'transparent';
-            pickBtn.style.color = type === 'Pick' ? 'white' : 'var(--text-light)';
-            resBtn.style.background = type === 'Reserved' ? 'var(--primary)' : 'transparent';
-            resBtn.style.color = type === 'Reserved' ? 'white' : 'var(--text-light)';
-
-            if (type === 'Pick') {
-                locInput.classList.add('hidden');
-            } else {
-                locInput.classList.remove('hidden');
-                locInput.placeholder = "Location (e.g. A-101)";
+            if (pickBtn) {
+                pickBtn.style.background = type === 'Pick' ? 'var(--primary)' : 'transparent';
+                pickBtn.style.color = type === 'Pick' ? 'white' : 'var(--text-light)';
             }
+            if (resBtn) {
+                resBtn.style.background = type === 'Reserved' ? 'var(--primary)' : 'transparent';
+                resBtn.style.color = type === 'Reserved' ? 'white' : 'var(--text-light)';
+            }
+
+            if (locGroup) {
+                if (type === 'Pick') {
+                    locGroup.classList.add('hidden');
+                } else {
+                    locGroup.classList.remove('hidden');
+                }
+            }
+        }
+
+        function openSessionModal() {
+            document.getElementById('sessionModal').classList.remove('hidden');
+            document.getElementById('modalTaskInput').focus();
+            setBinType(currentBinType);
+        }
+
+        function closeSessionModal() {
+            document.getElementById('sessionModal').classList.add('hidden');
         }
 
         function processScannedUserId(userId, action = null) {
@@ -1857,6 +1899,7 @@
                         showToast("No active task found.", "error");
                     } else {
                         stopTimer(activeTaskIdx);
+                        closeSessionModal();
                     }
                 } 
                 // Check for Start action (explicit or toggle)
@@ -1866,8 +1909,10 @@
                     } else {
                         if (currentBinType === 'Pick') {
                             document.getElementById('zoneModal').classList.remove('hidden');
+                            closeSessionModal();
                         } else {
-                            const loc = document.getElementById('locationInput').value.trim();
+                            const locInput = document.getElementById('modalLocationInput');
+                            const loc = locInput ? locInput.value.trim() : '';
                         if (!loc) return showToast("Enter Location first!", "error");
                         
                         supabaseClient.from('tasks').insert({
@@ -1879,14 +1924,18 @@
                             completed: false
                         }).then(({ error }) => {
                             if (error) showToast(error.message, "error");
-                            else showToast("Cycle count started!", "success");
+                            else {
+                                showToast("Cycle count started!", "success");
+                                closeSessionModal();
+                            }
                         });
-                        document.getElementById('locationInput').value = '';
+                        if (locInput) locInput.value = '';
                         }
                     }
                 }
                 if (document.getElementById('scanOverlay').classList.contains('show')) toggleScanOverlay();
-                document.getElementById('taskInput').value = '';
+                const taskInput = document.getElementById('modalTaskInput');
+                if (taskInput) taskInput.value = '';
                 saveData();
                 return;
             }
@@ -2896,6 +2945,7 @@
                         req = Math.max(...matchingScheds.map(sched => parseInt(sched.hc) || 0), 0);
                     }
                 }
+                console.log(`Shift: ${s}, Requirement (req): ${req}, Total Clocked In: ${shiftMembers.length}`);
 
                 const total = shiftMembers.length; // Cumulative count (all who clocked in)
                 // "Present" counts everyone currently on site (not 'Away')
