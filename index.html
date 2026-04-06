@@ -1971,7 +1971,7 @@
                     if (hour >= 6 && hour < 14) shift = '1st';
                     else if (hour >= 14 && hour < 22) shift = '2nd';
                     updates.timein = timeStr;
-                    updates.date = toLocalISO(now);
+                    updates.date = getOperationalISO(now);
                     updates.shift = shift;
                 } else { updates.breakin = timeStr; }
             } else if (action === 'On Break') {
@@ -2255,8 +2255,12 @@
 
         function showCycleStatsList(type) {
             const now = new Date();
+            const operationalISO = getOperationalISO(now);
             const counterRoles = ['Direct Counter', 'Back up'];
-            const allCounters = state.members.filter(m => counterRoles.includes(m.role));
+            const allCounters = state.members.filter(m => 
+                counterRoles.includes(m.role) && 
+                toLocalISO(m.date) === operationalISO
+            );
             
             const activeTasks = state.tasks.filter(t => !t.completed);
             const activeCounterIds = new Set(activeTasks.map(t => t.userid));
@@ -2517,6 +2521,13 @@
                    String(date.getDate()).padStart(2, '0');
         }
 
+        function getOperationalISO(date) {
+            const d = new Date(date);
+            // Operation day starts at 6am. Before 6am, it belongs to previous day.
+            if (d.getHours() < 6) d.setDate(d.getDate() - 1);
+            return toLocalISO(d);
+        }
+
         function calculateDuration(start, end) {
             if (!start) return '--';
             const sTime = new Date(start);
@@ -2731,32 +2742,37 @@
                     return matchesSearch;
                 });
 
-            if (historyList) {
+            if (historyList && !document.getElementById('historySubSection').classList.contains('hidden')) {
                 const historyLimit = displayLimits.history;
-                historyList.innerHTML = checkedOutMembers.length ? checkinHeader + checkedOutMembers.slice(0, historyLimit).map((m) => `
-                    <li>
-                        <div class="col-info">
-                            ${m.name}
-                        </div>
-                        <div class="mobile-meta-row">
-                            <span class="col-role">${m.role || '--'}</span>
-                            <div class="col-status">
-                                <span class="status-badge away" onclick="event.stopPropagation()">
-                                    ${m.status}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="col-actions">
-                            <button class="btn-action-sm details" onclick="showMemberDetails(${m.index})" title="View Details">
-                                <span class="material-symbols-outlined">info</span>
-                            </button>
-                            <button class="btn-action-sm" onclick="resetAttendance(${m.index})" style="color:var(--danger)" title="Reset Attendance Record">
-                                <span class="material-symbols-outlined">restart_alt</span>
-                            </button>
-                        </div>
-                    </li>
-                `).join('') : `<div class="empty-state">${globalSearch ? 'No matching records found.' : 'No check-out records found for today.'}</div>`;
+                const sortedHistory = checkedOutMembers.sort((a, b) => {
+                    // Sort by Date then by Time Out (descending)
+                    if (b.date !== a.date) return b.date.localeCompare(a.date);
+                    return (b.timeout || '').localeCompare(a.timeout || '');
+                });
 
+                let lastDate = null;
+                let historyHtml = checkedOutMembers.length ? checkinHeader : `<div class="empty-state">${globalSearch ? 'No matching records found.' : 'No check-out records found.'}</div>`;
+
+                sortedHistory.slice(0, historyLimit).forEach(m => {
+                    if (m.date !== lastDate) {
+                        lastDate = m.date;
+                        historyHtml += `<div style="padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid var(--border); font-size: 0.65rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em;">Operational Day: ${m.date}</div>`;
+                    }
+                    historyHtml += `
+                        <li>
+                            <div class="col-info">${m.name}</div>
+                            <div class="mobile-meta-row">
+                                <span class="col-role">${m.role || '--'}</span>
+                                <div class="col-status"><span class="status-badge away">${m.status}</span></div>
+                            </div>
+                            <div class="col-actions">
+                                <button class="btn-action-sm details" onclick="showMemberDetails(${m.index})"><span class="material-symbols-outlined">info</span></button>
+                                <button class="btn-action-sm" onclick="resetAttendance(${m.index})" style="color:var(--danger)"><span class="material-symbols-outlined">restart_alt</span></button>
+                            </div>
+                        </li>`;
+                });
+                historyList.innerHTML = historyHtml;
+                
                 if (checkedOutMembers.length > historyLimit) {
                     historyList.innerHTML += `
                         <div style="padding: 15px; text-align: center;">
@@ -2868,48 +2884,53 @@
 
             const prodLimit = activeProductivitySubTab === 'active' ? 999 : displayLimits.prodHistory;
 
-            taskList.innerHTML = tasksToShow.length ? tasksToShow.slice(0, prodLimit).map((t) => {
-                const i = t.originalIndex;
-                const sTime = t.starttime ? new Date(t.starttime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                const eTime = t.endtime ? new Date(t.endtime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                const duration = calculateDuration(t.starttime, t.endtime);
-                const statusLabel = !t.starttime ? 'Pending' : (t.completed ? 'Completed' : 'Running');
-                const statusClass = !t.starttime ? '' : (t.completed ? 'present' : 'running');
-                
-                return `
-                <li>
-                    <div class="col-info">
-                        <span class="${t.completed ? 'task-done' : ''}" style="font-weight: 700; display:block">${t.location} 
-                            <small style="font-weight:400; color:var(--primary)">[${t.bintype || 'Pick'}]</small></span>
-                        <div style="font-size: 0.7rem; color: var(--text-light)">${t.username} (ID: ${t.userid})</div>
-                    </div>
-                    <div class="col-status">
-                        <span class="status-badge ${statusClass}">${statusLabel}</span>
-                        ${t.skucount ? `<div style="font-size:0.65rem; font-weight:700; margin-top:2px">SKU: ${t.skucount}</div>` : ''}
-                    </div>
-                    <div class="col-date">${sTime}</div>
-                    <div class="col-date">${eTime}</div>
-                    <div class="col-duration">${duration}</div>
-                    <div class="col-actions">
-                        ${!t.starttime ? `
-                            <button class="btn-action-sm" onclick="startTimer(${i})" title="Start Timer" style="color: var(--success)">
-                                <span class="material-symbols-outlined">play_circle</span>
-                            </button>
-                        ` : (!t.endtime ? `
-                            <button class="btn-action-sm" onclick="stopTimer(${i})" title="Stop Timer" style="color: var(--danger)">
-                                <span class="material-symbols-outlined">stop_circle</span>
-                            </button>
-                        ` : `
-                            <button class="btn-action-sm details" title="Task Finished" style="opacity:0.3">
-                                <span class="material-symbols-outlined">check_circle</span>
-                            </button>
-                        `)}
-                        <button class="btn-action-sm" onclick="deleteTask(${i})" style="color:var(--text-light)">
-                            <span class="material-symbols-outlined">delete</span>
-                        </button>
-                    </div>
-                </li>
-            `}).join('') : `<div class="empty-state">${activeProductivitySubTab === 'active' ? 'No active sessions running.' : 'No completed history found.'}</div>`;
+            let lastTaskDate = null;
+            let taskHtml = "";
+            
+            if (tasksToShow.length === 0) {
+                taskHtml = `<div class="empty-state">${activeProductivitySubTab === 'active' ? 'No active sessions running.' : 'No completed history found.'}</div>`;
+            } else {
+                tasksToShow.slice(0, prodLimit).forEach(t => {
+                    const i = t.originalIndex;
+                    // Group by operational day of start time
+                    const opDate = getOperationalISO(t.starttime);
+                    if (activeProductivitySubTab === 'history' && opDate !== lastTaskDate) {
+                        lastTaskDate = opDate;
+                        taskHtml += `<div style="padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid var(--border); font-size: 0.65rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em;">Operational Day: ${opDate}</div>`;
+                    }
+
+                    const sTime = t.starttime ? new Date(t.starttime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                    const eTime = t.endtime ? new Date(t.endtime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                    const duration = calculateDuration(t.starttime, t.endtime);
+                    const statusLabel = !t.starttime ? 'Pending' : (t.completed ? 'Completed' : 'Running');
+                    const statusClass = !t.starttime ? '' : (t.completed ? 'present' : 'running');
+                    
+                    taskHtml += `
+                    <li>
+                        <div class="col-info">
+                            <span class="${t.completed ? 'task-done' : ''}" style="font-weight: 700; display:block">${t.location} 
+                                <small style="font-weight:400; color:var(--primary)">[${t.bintype || 'Pick'}]</small></span>
+                            <div style="font-size: 0.7rem; color: var(--text-light)">${t.username} (ID: ${t.userid})</div>
+                        </div>
+                        <div class="col-status">
+                            <span class="status-badge ${statusClass}">${statusLabel}</span>
+                            ${t.skucount ? `<div style="font-size:0.65rem; font-weight:700; margin-top:2px">SKU: ${t.skucount}</div>` : ''}
+                        </div>
+                        <div class="col-date">${sTime}</div>
+                        <div class="col-date">${eTime}</div>
+                        <div class="col-duration">${duration}</div>
+                        <div class="col-actions">
+                            ${!t.endtime ? `
+                                <button class="btn-action-sm" onclick="stopTimer(${i})" style="color: var(--danger)"><span class="material-symbols-outlined">stop_circle</span></button>
+                            ` : `
+                                <button class="btn-action-sm details" style="opacity:0.3"><span class="material-symbols-outlined">check_circle</span></button>
+                            `}
+                            <button class="btn-action-sm" onclick="deleteTask(${i})" style="color:var(--text-light)"><span class="material-symbols-outlined">delete</span></button>
+                        </div>
+                    </li>`;
+                });
+            }
+            taskList.innerHTML = taskHtml;
 
             if (activeProductivitySubTab === 'history' && tasksToShow.length > prodLimit) {
                 taskList.innerHTML += `
@@ -2928,24 +2949,23 @@
 
             // Update Summary Stats
             const totalMembers = state.members.length;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+        
+            const operationalISO = getOperationalISO(now);
 
             const getShiftData = (s) => {
-                const todayISO = toLocalISO(today);
                 const counterRoles = ['Direct Counter', 'Back up'];
                 
                 // Filter for Direct Counters/Back ups who clocked into this shift today
                 const shiftMembers = state.members.filter(m => 
                     m.shift === s && 
-                    toLocalISO(m.date) === todayISO && 
+                    toLocalISO(m.date) === operationalISO && 
                     counterRoles.includes(m.role)
                 );
                 
                 let req = 0;
                 if (state.schedules && state.schedules.length > 0) {
                     const matchingScheds = state.schedules.filter(sched => {
-                        return toLocalISO(sched.date) === todayISO && 
+                        return toLocalISO(sched.date) === operationalISO && 
                                sched.shift.toLowerCase().includes(s.toLowerCase());
                     });
                     if (matchingScheds.length > 0) {
@@ -2953,7 +2973,7 @@
                         req = Math.max(...matchingScheds.map(sched => parseInt(sched.hc) || 0), 0);
                     }
                 }
-                console.log(`Shift: ${s}, Target Date: ${todayISO}, Requirement: ${req}, Clocked In: ${shiftMembers.length}`);
+                console.log(`Shift: ${s}, Operational Date: ${operationalISO}, Requirement: ${req}, Clocked In: ${shiftMembers.length}`);
 
                 const total = shiftMembers.length; // Cumulative count (all who clocked in)
                 // "Present" counts everyone currently on site (not 'Away')
@@ -2970,12 +2990,15 @@
             const s1 = getShiftData('1st');
             const s2 = getShiftData('2nd');
             const s3 = getShiftData('3rd');
-            const breakCount = state.members.filter(m => m.status === 'On Break').length;
+            const breakCount = state.members.filter(m => 
+                m.status === 'On Break' && 
+                toLocalISO(m.date) === operationalISO
+            ).length;
 
             // Calculate Long Breaks (> 40 mins) - Resets per shift
             const longBreakCount = state.members.filter(m => {
                 // Only count long breaks for members in the current active shift
-                if (m.status !== 'On Break' || m.shift !== currentShift || !m.breakout || m.breakout === '--') return false;
+                if (m.status !== 'On Break' || m.shift !== currentShift || toLocalISO(m.date) !== operationalISO || !m.breakout || m.breakout === '--') return false;
                 try {
                     // Parse "HH:MM AM/PM"
                     const [time, modifier] = m.breakout.split(' ');
@@ -3027,22 +3050,26 @@
 
             // Update Cycle Count Dashboard Stats
             const counterRoles = ['Direct Counter', 'Back up'];
-            const allCounters = state.members.filter(m => counterRoles.includes(m.role));
+            // For the dashboard summary, only consider counters clocked in for the current operational day
+            const operationalCounters = state.members.filter(m => 
+                counterRoles.includes(m.role) && 
+                toLocalISO(m.date) === operationalISO
+            );
             
             const activeTasks = state.tasks.filter(t => !t.completed);
             const activeCounterIds = new Set(activeTasks.map(t => t.userid));
             
-            const totalActiveCounters = allCounters.filter(m => activeCounterIds.has(m.userid)).length;
-            const totalInactiveCounters = allCounters.filter(m => !activeCounterIds.has(m.userid) && m.status !== 'Away').length;
+            const totalActiveCounters = operationalCounters.filter(m => activeCounterIds.has(m.userid)).length;
+            const totalInactiveCounters = operationalCounters.filter(m => !activeCounterIds.has(m.userid) && m.status !== 'Away').length;
             
             const longCycleCount = activeTasks.filter(t => {
-                const m = allCounters.find(mem => mem.userid === t.userid);
+                const m = operationalCounters.find(mem => mem.userid === t.userid);
                 if (!m || !t.starttime) return false;
                 const diff = (now - new Date(t.starttime)) / 3600000; // hours
                 return diff > 1;
             }).length;
 
-            const countersOnBreak = allCounters.filter(m => m.status === 'On Break').length;
+            const countersOnBreak = operationalCounters.filter(m => m.status === 'On Break').length;
 
             if(document.getElementById('sumCycleActive')) document.getElementById('sumCycleActive').innerText = totalActiveCounters;
             if(document.getElementById('sumCycleInactive')) document.getElementById('sumCycleInactive').innerText = totalInactiveCounters;
