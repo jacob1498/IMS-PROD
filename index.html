@@ -120,6 +120,52 @@
             z-index: 900;
         }
 
+        /* Reports Optimization */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .report-mini-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .mini-stat-card {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        .mini-stat-card .val { font-size: 1.25rem; font-weight: 800; color: var(--primary); display: block; }
+        .mini-stat-card .lbl { font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700; }
+
+        .stat-card-compact {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        h2 { 
+            margin-top: 0; 
+            font-size: 1.25rem; 
+            border-bottom: 2px solid var(--bg); 
+            padding-bottom: 10px;
+            position: sticky;
+            top: 80px; 
+            background: var(--card);
+            z-index: 900;
+        }
+
         .input-group {
             display: flex;
             gap: 8px;
@@ -446,6 +492,22 @@
         @media (max-width: 768px) {
             body { padding: 0; padding-bottom: 80px; }
             .container { padding: 15px; width: 100%; box-sizing: border-box; }
+            
+            /* Horizontally scroll mini stats on mobile for space */
+            .report-mini-stats {
+                display: flex;
+                overflow-x: auto;
+                padding-bottom: 10px;
+                scroll-snap-type: x mandatory;
+                gap: 10px;
+            }
+            .mini-stat-card { min-width: 130px; scroll-snap-align: start; flex-shrink: 0; }
+
+            /* Optimize Reports for Mobile */
+            .analytics-grid { grid-template-columns: 1fr !important; gap: 12px; }
+            #reportsSection .card { padding: 16px; }
+            #reportsSection h3 { font-size: 1rem; }
+            .chart-container { height: 250px !important; }
             
             /* Hide only the main Attendance/Productivity toggle on mobile as it's in the footer/sidebar */
             #homeView > .tab-group { display: none !important; }
@@ -1070,7 +1132,28 @@
             <!-- Reports Section -->
             <div id="reportsSection" class="hidden">
                 <h2 style="border-bottom:none">Reports & Analytics</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 10px;">
+                
+                <!-- Mini Stats Row -->
+                <div class="report-mini-stats">
+                    <div class="mini-stat-card">
+                        <span id="repAvgBinTime" class="val">--</span>
+                        <span class="lbl">Avg Mins/Bin</span>
+                    </div>
+                    <div class="mini-stat-card">
+                        <span id="repSkusPerHour" class="val">--</span>
+                        <span class="lbl">SKUs / Hour</span>
+                    </div>
+                    <div class="mini-stat-card">
+                        <span id="repBreakCompliance" class="val">--</span>
+                        <span class="lbl">Break Comp.</span>
+                    </div>
+                    <div class="mini-stat-card">
+                        <span id="repShiftFulfillment" class="val">--</span>
+                        <span class="lbl">Fulfillment</span>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
                     <div class="card" style="border-top: 4px solid var(--success);">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
                             <span class="material-symbols-outlined" style="color:var(--success); font-size: 32px;">inventory_2</span>
@@ -1083,12 +1166,24 @@
                         <p style="font-size: 0.75rem; color: var(--text-light); margin-top: 15px; text-align: center;">Total unique locations completed in Reserved areas.</p>
                     </div>
 
+                    <div class="card" style="border-top: 4px solid var(--primary); grid-column: 1 / -1;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span class="material-symbols-outlined" style="color:var(--primary); font-size: 32px;">bar_chart</span>
+                                <h3 style="margin:0">Member Performance</h3>
+                            </div>
+                            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-light);">TOTAL SKUs DONE TODAY</div>
+                        </div>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="cycleCountChartCanvas"></canvas>
+                        </div>
+                    </div>
+
                     <div class="card" style="border-top: 4px solid var(--primary);">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
                             <span class="material-symbols-outlined" style="color:var(--primary); font-size: 32px;">assessment</span>
                             <h3 style="margin:0">Attendance Data</h3>
                         </div>
-                        <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 20px;">Download a comprehensive list of all members, their shift assignments, and latest timestamps (Time In, Break, Time Out).</p>
                         <button onclick="exportAttendanceToExcel()" style="width: 100%; background: var(--success);">
                             <span class="material-symbols-outlined">file_download</span>
                             Export to Excel (.csv)
@@ -1100,21 +1195,10 @@
                             <span class="material-symbols-outlined" style="color:var(--primary); font-size: 32px;">analytics</span>
                             <h3 style="margin:0">Productivity Data</h3>
                         </div>
-                        <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 20px;">Download the full history of cycle count sessions, including location zones, durations, total units, and unique SKU counts.</p>
                         <button onclick="exportProductivityToExcel()" style="width: 100%; background: var(--success);">
                             <span class="material-symbols-outlined">file_download</span>
                             Export to Excel (.csv)
                         </button>
-                    </div>
-
-                    <div class="card" style="border-top: 4px solid var(--primary); grid-column: 1 / -1;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                            <span class="material-symbols-outlined" style="color:var(--primary); font-size: 32px;">bar_chart</span>
-                            <h3 style="margin:0">Productivity Analytics</h3>
-                        </div>
-                        <div style="height: 300px; position: relative;">
-                            <canvas id="cycleCountChartCanvas"></canvas>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1458,13 +1542,21 @@
             const gain = ctx.createGain();
             osc.connect(gain);
             gain.connect(ctx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, ctx.currentTime);
-            gain.gain.setValueAtTime(0, ctx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.5);
+            osc.type = 'sawtooth'; 
+            const now = ctx.currentTime;
+            
+            // Intense Siren: High frequency jumps + Volume pulsing
+            for(let i=0; i<6; i++) {
+                osc.frequency.exponentialRampToValueAtTime(900, now + (i*0.5));
+                osc.frequency.exponentialRampToValueAtTime(400, now + (i*0.5) + 0.25);
+                
+                gain.gain.setValueAtTime(0.15, now + (i*0.5));
+                gain.gain.exponentialRampToValueAtTime(0.01, now + (i*0.5) + 0.25);
+            }
+            
+            gain.gain.setValueAtTime(0.15, now);
+            osc.start(now);
+            osc.stop(now + 3.0);
         }
 
         // Auth Logic
@@ -1569,7 +1661,7 @@
             if(headerTitle) headerTitle.innerText = titles[tab];
 
             if (document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
-            if (tab === 'reports') setTimeout(renderCycleCountChart, 100);
+            if (tab === 'reports') setTimeout(renderReportsAnalytics, 100);
             saveData(); 
         }
 
@@ -3093,42 +3185,6 @@
             const totalMembers = state.members.length;
         
             const operationalISO = getOperationalISO(now);
-
-            const getShiftData = (s) => {
-                const counterRoles = ['Direct Counter', 'Back up'];
-                
-                // Filter for Direct Counters/Back ups who clocked into this shift today
-                const shiftMembers = state.members.filter(m => 
-                    m.shift === s && 
-                    toLocalISO(m.date) === operationalISO && 
-                    counterRoles.includes(m.role)
-                );
-                
-                let req = 0;
-                if (state.schedules && state.schedules.length > 0) {
-                    const matchingScheds = state.schedules.filter(sched => {
-                        return toLocalISO(sched.date) === operationalISO && 
-                               sched.shift.toLowerCase().includes(s.toLowerCase());
-                    });
-                    if (matchingScheds.length > 0) {
-                        // Use the highest requirement found for this shift (Peak Requirement)
-                        req = Math.max(...matchingScheds.map(sched => parseInt(sched.hc) || 0), 0);
-                    }
-                }
-                console.log(`Shift: ${s}, Operational Date: ${operationalISO}, Requirement: ${req}, Clocked In: ${shiftMembers.length}`);
-
-                const total = shiftMembers.length; // Cumulative count (all who clocked in)
-                // "Present" counts everyone currently on site (not 'Away')
-                const present = shiftMembers.filter(m => m.status !== 'Away').length; 
-                return {
-                    total,
-                    present,
-                    requirement: req,
-                    totalPct: req > 0 ? Math.round((total / req) * 100) : 0,
-                    presentPct: req > 0 ? Math.round((present / req) * 100) : 0
-                };
-            };
-
             const s1 = getShiftData('1st');
             const s2 = getShiftData('2nd');
             const s3 = getShiftData('3rd');
@@ -3252,6 +3308,22 @@
             if (clockEl) clockEl.textContent = `${dateStr} | ${timeStr}`;
         }
         setInterval(updateClock, 1000);
+
+        // Mobile Swipe Functionality
+        let touchstartX = 0;
+        let touchendX = 0;
+        const swipeTabs = ['home', 'summary', 'reports', 'schedule'];
+
+        document.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
+        document.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            const diff = touchstartX - touchendX;
+            if (Math.abs(diff) > 100) {
+                const currentIndex = swipeTabs.indexOf(state.activeMainTab);
+                if (diff > 0 && currentIndex < swipeTabs.length - 1) switchFooterTab(swipeTabs[currentIndex + 1]);
+                else if (diff < 0 && currentIndex > 0) switchFooterTab(swipeTabs[currentIndex - 1]);
+            }
+        }, {passive: true});
 
         function parseShiftTime(timeStr) {
             if (!timeStr || timeStr === '--') return null;
