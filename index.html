@@ -874,12 +874,21 @@
                 </div>
 
                 <div id="registerSubSection" class="hidden">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                         <h2 style="border:none; padding:0; margin:0">User Master</h2>
-                        <button onclick="openRegisterModal()" style="padding: 8px 16px;">
-                            <span class="material-symbols-outlined">person_add</span>
-                            Register New
-                        </button>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="file" id="memberCsvInput" accept=".csv" style="display: none;" onchange="handleMemberUpload(event)">
+                            <button onclick="document.getElementById('memberCsvInput').click()" style="background: var(--text-light);">
+                                <span class="material-symbols-outlined">upload_file</span> Upload
+                            </button>
+                            <button onclick="exportMembersToExcel()" style="background: var(--success);">
+                                <span class="material-symbols-outlined">file_download</span> Export
+                            </button>
+                            <button onclick="openRegisterModal()" style="padding: 8px 16px;">
+                                <span class="material-symbols-outlined">person_add</span>
+                                Register New
+                            </button>
+                        </div>
                     </div>
                     <!-- Member Registration Summary -->
                     <div class="card" style="padding: 12px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-left: 4px solid var(--primary);">
@@ -1826,6 +1835,65 @@
             roleInput.value = '';
             closeRegisterModal();
             render();
+        }
+
+        function exportMembersToExcel() {
+            if (state.members.length === 0) return showToast("No members found!", "error");
+            toggleLoader(true);
+            setTimeout(() => {
+                try {
+                    const headers = ["User ID", "Name", "Role"];
+                    const csvRows = [headers.join(",")];
+                    state.members.forEach(m => {
+                        const row = [m.userid, m.name, m.role];
+                        csvRows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
+                    });
+                    downloadFile(csvRows.join("\n"), `Member_Master_${new Date().toISOString().slice(0,10)}.csv`);
+                    showToast("Member list exported!", "success");
+                } finally {
+                    toggleLoader(false);
+                }
+            }, 100);
+        }
+
+        async function handleMemberUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !supabaseClient) return;
+            toggleLoader(true);
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split('\n');
+                    const newMembers = [];
+                    const existingUserIds = new Set(state.members.map(m => m.userid.toString()));
+                    const csvUserIds = new Set();
+                    let dups = 0, invalid = 0;
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+                        const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+                        if (parts.length >= 3) {
+                            const [userid, name, role] = parts;
+                            if (!userid || !name || !role) { invalid++; continue; }
+                            if (existingUserIds.has(userid.toString()) || csvUserIds.has(userid.toString())) { dups++; continue; }
+                            newMembers.push({ userid, name, role });
+                            csvUserIds.add(userid.toString());
+                        } else { invalid++; }
+                    }
+                    if (newMembers.length > 0) {
+                        const { error } = await supabaseClient.from('members').insert(newMembers);
+                        if (error) throw error;
+                        showToast(`Uploaded ${newMembers.length} members.`, "success");
+                    }
+                    let msg = (dups > 0 ? `${dups} duplicates skipped. ` : "") + (invalid > 0 ? `${invalid} invalid rows skipped.` : "");
+                    if (msg) showToast(msg, "info");
+                    if (newMembers.length === 0 && !dups && !invalid) showToast("No valid data found.", "error");
+                    fetchInitialData();
+                } catch (err) { showToast("Upload failed: " + err.message, "error"); }
+                finally { toggleLoader(false); event.target.value = ''; }
+            };
+            reader.readAsText(file);
         }
 
         let html5QrCode = null;
