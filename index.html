@@ -1941,6 +1941,14 @@
                     if (activeTaskIdx !== -1) {
                         showToast("User already has a task!", "error");
                     } else {
+                        // Validation: User must be checked in for the current operational day
+                        const opDay = getOperationalISO(new Date());
+                        if (member.status !== 'Present' || toLocalISO(member.date) !== opDay) {
+                            const statusMsg = member.status === 'On Break' ? "is currently On Break" : "is not Checked In";
+                            showToast(`Access Denied: ${member.name} ${statusMsg}!`, "error");
+                            return;
+                        }
+
                         if (currentBinType === 'Pick') {
                             document.getElementById('zoneModal').classList.remove('hidden');
                             closeSessionModal();
@@ -2425,9 +2433,14 @@
             if (!canvas || typeof Chart === 'undefined') return;
             const ctx = canvas.getContext('2d');
             
+            const now = new Date();
+            const operationalISO = getOperationalISO(now);
+
             const roleStats = {};
             state.tasks.forEach(task => {
-                if (!task.completed) return;
+                // Filter for current operational day only
+                if (!task.completed || getOperationalISO(task.starttime) !== operationalISO) return;
+                
                 const member = state.members.find(m => m.userid === task.userid);
                 const role = member ? member.role : 'Other';
                 if (!roleStats[role]) {
@@ -2579,22 +2592,28 @@
 
         function toLocalISO(dateInput) {
             if (!dateInput) return null;
-            let d = dateInput;
-            // Force local interpretation for ISO strings (YYYY-MM-DD) to prevent UTC shifts
-            if (typeof d === 'string' && d.includes('-') && !d.includes(':')) {
-                d = d.replace(/-/g, '/');
-            }
-            const date = new Date(d);
-            if (isNaN(date.getTime())) return null;
-            return date.getFullYear() + '-' + 
-                   String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                   String(date.getDate()).padStart(2, '0');
+            let d;
+            if (dateInput instanceof Date) {
+                d = dateInput;
+            } else if (typeof dateInput === 'string') {
+                // Normalize to slashes for date-only strings to force Local Time parsing (PHT)
+                // This prevents the date from shifting when stored as YYYY-MM-DD
+                d = new Date(dateInput.includes('T') ? dateInput : dateInput.replace(/-/g, '/'));
+            } else { d = new Date(dateInput); }
+            
+            if (!d || isNaN(d.getTime())) return null;
+            return d.getFullYear() + '-' + 
+                   String(d.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(d.getDate()).padStart(2, '0');
         }
 
         function getOperationalISO(date) {
             const d = new Date(date);
-            // Operation day starts at 6am. Before 6am, it belongs to previous day.
-            if (d.getHours() < 6) d.setDate(d.getDate() - 1);
+            if (isNaN(d.getTime())) return null;
+            // Only apply 6am shift logic if we have time information
+            const hasTime = typeof date === 'string' ? (date.includes('T') || date.includes(':')) : true;
+            
+            if (hasTime && d.getHours() < 6) d.setDate(d.getDate() - 1);
             return toLocalISO(d);
         }
 
@@ -3166,7 +3185,11 @@
 
             // Update Reports Reserved Summary
             if (state.tasks) {
-                const reservedBinsDone = state.tasks.filter(t => t.completed && t.bintype === 'Reserved');
+                const reservedBinsDone = state.tasks.filter(t => 
+                    t.completed && 
+                    t.bintype === 'Reserved' && 
+                    getOperationalISO(t.starttime) === operationalISO
+                );
                 const uniqueReservedBins = new Set(reservedBinsDone.map(t => (t.location || '').toString().toLowerCase().trim()).filter(l => l !== '')).size;
                 if (document.getElementById('reservedBinTotal')) document.getElementById('reservedBinTotal').innerText = uniqueReservedBins;
             }
@@ -3198,6 +3221,11 @@
             if(document.getElementById('sumCycleInactive')) document.getElementById('sumCycleInactive').innerText = totalInactiveCounters;
             if(document.getElementById('sumCycleLong')) document.getElementById('sumCycleLong').innerText = longCycleCount;
             if(document.getElementById('sumCycleBreak')) document.getElementById('sumCycleBreak').innerText = countersOnBreak;
+
+            // Auto-refresh Productivity Analytics chart to ensure it resets at 6 AM
+            if (state.activeMainTab === 'reports') {
+                renderCycleCountChart();
+            }
         }
 
         // Handle scroll events for sticky UI and back-to-top button
@@ -3225,9 +3253,54 @@
         }
         setInterval(updateClock, 1000);
 
+        function parseShiftTime(timeStr) {
+            if (!timeStr || timeStr === '--') return null;
+            try {
+                const [time, modifier] = timeStr.split(' ');
+                let [hours, minutes] = time.split(':');
+                if (hours === '12') hours = '00';
+                if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+                const d = new Date();
+                d.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                // If the parsed time is in the future, it likely belongs to the previous calendar day 
+                // (e.g., a 10 PM start time on a shift ending at 6 AM)
+                if (d > new Date()) d.setDate(d.getDate() - 1);
+                return d;
+            } catch (e) { return null; }
+        }
+
         function checkThresholdAlerts() {
             const now = new Date();
             let alertTriggered = false;
+            const operationalISO = getOperationalISO(now);
+            const counterRoles = ['Direct Counter', 'Back up'];
+
+            // Check Long Inactivity (> 45m)
+            state.members.forEach(m => {
+                if (m.status === 'Present' && counterRoles.includes(m.role) && toLocalISO(m.date) === operationalISO) {
+                    const hasActiveTask = state.tasks.some(t => t.userid === m.userid && !t.completed);
+                    if (!hasActiveTask) {
+                        const userTasks = state.tasks.filter(t => t.userid === m.userid && t.completed && getOperationalISO(t.endtime) === operationalISO);
+                        let lastActivity;
+                        if (userTasks.length > 0) {
+                            const lastTask = userTasks.sort((a,b) => new Date(b.endtime) - new Date(a.endtime))[0];
+                            lastActivity = new Date(lastTask.endtime);
+                        } else {
+                            lastActivity = parseShiftTime(m.timein);
+                        }
+
+                        if (lastActivity) {
+                            const inactiveMins = Math.floor((now - lastActivity) / 60000);
+                            const alertKey = `inactive-${m.userid}-${lastActivity.getTime()}`;
+                            if (inactiveMins > 45 && !notifiedAlerts.has(alertKey)) {
+                                showToast(`INACTIVE: ${m.name} has not started a count for ${inactiveMins}m`, 'error');
+                                notifiedAlerts.add(alertKey);
+                                alertTriggered = true;
+                            }
+                        }
+                    }
+                }
+            });
 
             // Check Long Breaks (> 40m)
             state.members.forEach(m => {
@@ -3244,11 +3317,11 @@
 
             // Check Long Counting (> 1h)
             state.tasks.forEach(t => {
-                if (!t.completed && t.startTime) {
-                    const diffHours = (now - new Date(t.startTime)) / 3600000;
-                    const alertKey = `count-${t.userid}-${t.startTime}`;
+                if (!t.completed && t.starttime) {
+                    const diffHours = (now - new Date(t.starttime)) / 3600000;
+                    const alertKey = `count-${t.userid}-${t.starttime}`;
                     if (diffHours > 1 && !notifiedAlerts.has(alertKey)) {
-                        showToast(`LONG COUNT: ${t.userName} at ${t.location}`, 'error');
+                        showToast(`LONG COUNT: ${t.username} at ${t.location}`, 'error');
                         notifiedAlerts.add(alertKey);
                         alertTriggered = true;
                     }
