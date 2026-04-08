@@ -153,7 +153,6 @@
         button:active { transform: translateY(0); }
 
         ul { list-style: none; padding: 0; }
-        ul { overflow-x: hidden; }
 
         /* Footer Navigation (Mobile Only) */
         .footer-nav {
@@ -517,32 +516,10 @@
 
             .col-actions {
                 grid-area: actions;
-                position: absolute !important;
-                right: -120px;
-                top: 0;
-                bottom: 0;
-                width: 120px;
-                background: #f8fafc;
-                border-left: 1px solid var(--border);
-                display: flex !important;
-                justify-content: space-evenly !important;
-                align-items: center !important;
-                z-index: 5;
-                transition: all 0.2s;
-            }
-
-            li {
-                transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                will-change: transform;
-                position: relative;
-            }
-
-            li.swiped {
-                transform: translateX(-120px);
-            }
-
-            li.swiped .col-actions {
-                right: -120px; /* Moves with the translated LI */
+                position: static;
+                display: flex;
+                gap: 4px;
+                padding-left: 10px;
             }
         }
 
@@ -688,25 +665,6 @@
         .schedule-row > div:last-child { border-right: none; }
         .schedule-row:nth-child(even) { background-color: #f8fafc !important; }
         
-        /* Location Suggestions */
-        .suggestion-list {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            max-height: 160px;
-            overflow-y: auto;
-            z-index: 200;
-            box-shadow: var(--shadow);
-            margin-top: 2px;
-        }
-        .suggestion-item { padding: 8px 12px; cursor: pointer; font-size: 0.85rem; border-bottom: 1px solid var(--bg); }
-        .suggestion-item:last-child { border-bottom: none; }
-        .suggestion-item:hover { background: var(--bg); color: var(--primary); font-weight: 600; }
-
         /* Schedule Visual Board */
         .sched-visual-grid { display: flex; flex-direction: column; gap: 15px; }
         .sched-day-card { background: #f8fafc; border-radius: 10px; padding: 15px; border: 1px solid var(--border); }
@@ -914,7 +872,7 @@
                     </div>
                     <ul id="historyList"></ul>
                 </div>
-<!--  -->
+
                 <div id="registerSubSection" class="hidden">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                         <h2 style="border:none; padding:0; margin:0">User Master</h2>
@@ -931,11 +889,6 @@
                                 Register New
                             </button>
                         </div>
-                    </div>
-                    <!-- Local Search for Register Members -->
-                    <div class="search-area" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; background: white; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);">
-                        <span class="material-symbols-outlined" style="color: var(--text-light); font-size: 18px;">search</span>
-                        <input type="text" id="registerSearchInput" placeholder="Filter by name or ID..." oninput="render()" style="border: none; background: transparent; width: 100%; outline: none; font-size: 0.85rem;">
                     </div>
                     <!-- Member Registration Summary -->
                     <div class="card" style="padding: 12px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-left: 4px solid var(--primary);">
@@ -983,15 +936,14 @@
                             <button id="modalBtnRes" onclick="setBinType('Reserved')" style="flex:1; background: transparent; color: var(--text-light); padding: 8px; font-size: 0.75rem; border-radius: 4px;">Reserved</button>
                         </div>
                     </div>
-                    <div id="modalLocationGroup" class="hidden" style="display: flex; flex-direction: column; gap: 5px; position: relative;">
+                    <div id="modalLocationGroup" class="hidden" style="display: flex; flex-direction: column; gap: 5px;">
                         <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Location</label>
-                        <input type="text" id="modalLocationInput" placeholder="e.g. A-101" oninput="updateLocationSuggestions(this.value)" autocomplete="off" style="width: 100%; box-sizing: border-box;">
-                        <div id="locationSuggestions" class="suggestion-list hidden"></div>
+                        <input type="text" id="modalLocationInput" placeholder="e.g. A-101" style="width: 100%; box-sizing: border-box;">
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 5px;">
                         <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">User ID</label>
                         <div style="display: flex; gap: 8px;">
-                            <input type="text" id="modalTaskInput" placeholder="ID(s) e.g. IC1, IC2..." onkeyup="if(event.key==='Enter') processScannedUserId(this.value)" style="flex: 1;">
+                            <input type="text" id="modalTaskInput" placeholder="Enter ID..." onkeyup="if(event.key==='Enter') processScannedUserId(this.value)" style="flex: 1;">
                             <button onclick="toggleScanOverlay()" style="background: var(--bg); color: var(--primary); padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
                                 <span class="material-symbols-outlined">qr_code_scanner</span>
                             </button>
@@ -1001,7 +953,7 @@
                         <button onclick="processScannedUserId(document.getElementById('modalTaskInput').value, 'start')" style="background: var(--success); padding: 12px;">
                             <span class="material-symbols-outlined">play_circle</span> Start
                         </button>
-                        <button onclick="handleEndSession()" style="background: var(--text-light); padding: 12px;">
+                        <button onclick="processScannedUserId(document.getElementById('modalTaskInput').value, 'stop')" style="background: var(--text-light); padding: 12px;">
                             <span class="material-symbols-outlined">stop_circle</span> End
                         </button>
                     </div>
@@ -1182,8 +1134,8 @@
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <h2 style="border:none; padding:0; margin:0">Team Schedule</h2>
                         <div style="display: flex; gap: 10px;">
-                            <input type="file" id="scheduleCsvInput" accept=".csv" style="display: none;" onchange="handleUniversalUpload(event)">
-                            <button onclick="openUploadSelector()">
+                            <input type="file" id="scheduleCsvInput" accept=".csv" style="display: none;" onchange="handleScheduleUpload(event)">
+                            <button onclick="document.getElementById('scheduleCsvInput').click()">
                                 <span class="material-symbols-outlined">upload_file</span> Upload CSV
                             </button>
                         </div>
@@ -1194,9 +1146,6 @@
                         </button>
                         <button id="schedVisualViewBtn" onclick="switchScheduleView('visual')" style="font-size: 0.75rem; padding: 6px 12px;">
                             <span class="material-symbols-outlined" style="font-size:16px">view_kanban</span> Shift Board
-                        </button>
-                        <button id="schedStorageViewBtn" onclick="switchScheduleView('storage')" style="font-size: 0.75rem; padding: 6px 12px;">
-                            <span class="material-symbols-outlined" style="font-size:16px">inventory_2</span> Storage
                         </button>
                     </div>
                 </div>
@@ -1222,15 +1171,6 @@
                         <ul id="scheduleList" style="padding-bottom: 0;"></ul>
                     </div>
                     <div id="scheduleVisualWrapper" class="hidden sched-visual-grid" style="padding: 15px;"></div>
-                    <div id="scheduleStorageWrapper" class="hidden">
-                         <div class="table-header">
-                            <div style="flex: 1;">Aisle</div>
-                            <div style="flex: 1;">Area</div>
-                            <div style="flex: 2;">Location</div>
-                            <div style="flex: 0.6; text-align: right;">Actions</div>
-                        </div>
-                        <ul id="locationList" style="padding-bottom: 0;"></ul>
-                    </div>
                 </div>
             </div>
 
@@ -1285,24 +1225,6 @@
                     <button onclick="selectZone('Ecom 2')" style="padding: 15px; font-size: 1rem;">Ecom 2</button>
                 </div>
                 <button onclick="closeZoneModal()" style="width:100%; margin-top:20px; background:var(--bg); color:var(--text)">Cancel</button>
-            </div>
-        </div>
-
-        <!-- Upload Selector Modal -->
-        <div id="uploadSelectModal" class="modal-overlay hidden" onclick="closeUploadSelector()">
-            <div class="modal-content" onclick="event.stopPropagation()">
-                <div class="modal-header">
-                    <h3>Select Upload Type</h3>
-                    <button onclick="closeUploadSelector()" style="background:none; color:var(--text-light); padding:0"><span class="material-symbols-outlined">close</span></button>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
-                    <button onclick="triggerUpload('schedule')" style="padding: 15px; font-size: 1rem; background: var(--primary);"><span class="material-symbols-outlined">calendar_month</span> Team Schedule</button>
-                    <button onclick="triggerUpload('location')" style="padding: 15px; font-size: 1rem; background: var(--success);"><span class="material-symbols-outlined">location_on</span> Storage Locations</button>
-                </div>
-                <p style="font-size: 0.75rem; color: var(--text-light); margin-top: 15px; text-align: center;">
-                    Schedule: Date, Area, Shift, Time, HC<br>
-                    Location: Aisle, Area, Location
-                </p>
             </div>
         </div>
 
@@ -1497,7 +1419,6 @@
             historyFilterToDate: '',
             scheduleFilterFromDate: '',
             scheduleFilterToDate: '',
-            locations: [],
             tasks: [],
             schedules: [],
             ...uiSettings
@@ -1665,7 +1586,6 @@
             state.scheduleView = view;
             document.getElementById('schedTableViewBtn').classList.toggle('active', view === 'table');
             document.getElementById('schedVisualViewBtn').classList.toggle('active', view === 'visual');
-            document.getElementById('schedStorageViewBtn').classList.toggle('active', view === 'storage');
             saveData();
         }
 
@@ -1766,12 +1686,10 @@
                 const { data: members } = await supabaseClient.from('members').select('*');
                 const { data: tasks } = await supabaseClient.from('tasks').select('*');
                 const { data: schedules } = await supabaseClient.from('schedules').select('*');
-                const { data: locations } = await supabaseClient.from('locations').select('*');
                 
                 state.members = members || [];
                 state.tasks = tasks || [];
                 state.schedules = schedules || [];
-                state.locations = locations || [];
                 render();
             } catch (err) {
                 console.error("Fetch error:", err);
@@ -1812,16 +1730,6 @@
                         const idx = state.schedules.findIndex(s => s.id === payload.new.id);
                         if (idx > -1) state.schedules[idx] = payload.new;
                         else state.schedules.push(payload.new);
-                    }
-                    render();
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'locations' }, payload => {
-                    if (payload.eventType === 'DELETE') {
-                        state.locations = state.locations.filter(l => l.id !== payload.old.id);
-                    } else {
-                        const idx = state.locations.findIndex(l => l.id === payload.new.id);
-                        if (idx > -1) state.locations[idx] = payload.new;
-                        else state.locations.push(payload.new);
                     }
                     render();
                 })
@@ -2067,98 +1975,10 @@
 
         function closeSessionModal() {
             document.getElementById('sessionModal').classList.add('hidden');
-            const suggestions = document.getElementById('locationSuggestions');
-            if (suggestions) suggestions.classList.add('hidden');
-        }
-
-        function updateLocationSuggestions(val) {
-            const container = document.getElementById('locationSuggestions');
-            if (!val || val.length < 1) { container.classList.add('hidden'); return; }
-            
-            const matches = state.locations.filter(l => 
-                l.location.toLowerCase().includes(val.toLowerCase()) || 
-                (l.aisle && l.aisle.toLowerCase().includes(val.toLowerCase()))
-            ).slice(0, 8); // Show top 8 matches
-
-            if (matches.length > 0) {
-                container.innerHTML = matches.map(m => `
-                    <div class="suggestion-item" onclick="selectLocationSuggestion('${m.location}')">
-                        <div style="font-weight:700">${m.location}</div>
-                        <div style="font-size:0.7rem; color:var(--text-light)">Aisle: ${m.aisle || '--'} | Area: ${m.area || '--'}</div>
-                    </div>
-                `).join('');
-                container.classList.remove('hidden');
-            } else {
-                container.classList.add('hidden');
-            }
-        }
-
-        function selectLocationSuggestion(loc) {
-            document.getElementById('modalLocationInput').value = loc;
-            document.getElementById('locationSuggestions').classList.add('hidden');
-        }
-
-        function handleEndSession() {
-            const userId = document.getElementById('modalTaskInput').value.trim();
-            const location = document.getElementById('modalLocationInput').value.trim();
-            
-            // Bulk end by location if User ID is empty but location is present
-            if (!userId && location) {
-                const activeTasks = state.tasks.filter(t => !t.completed && t.location.toLowerCase() === location.toLowerCase());
-                if (activeTasks.length === 0) return showToast("No active sessions found for this location.", "error");
-                
-                bulkStoppingTaskIds = activeTasks.map(t => t.id);
-                currentTaskStoppingIndex = -1; // Flag for bulk operation
-                
-                document.getElementById('qtyModalTitle').innerText = `Bulk End: ${location} (${activeTasks.length} users)`;
-                document.getElementById('modalSkuInput').value = '';
-                document.getElementById('quantityModal').classList.remove('hidden');
-                document.getElementById('modalSkuInput').focus();
-                closeSessionModal();
-            } else {
-                processScannedUserId(userId, 'stop');
-            }
         }
 
         function processScannedUserId(userId, action = null) {
             if (!userId) return;
-            const isProductivityVisible = !document.getElementById('productivitySection').classList.contains('hidden');
-
-            // Bulk Assignment Logic for Reserved Locations (e.g., "IC1, IC2, IC3")
-            if (isProductivityVisible && action === 'start' && currentBinType === 'Reserved' && userId.toString().includes(',')) {
-                const ids = userId.toString().split(',').map(id => id.trim()).filter(id => id);
-                const locInput = document.getElementById('modalLocationInput');
-                const loc = locInput ? locInput.value.trim() : '';
-                if (!loc) return showToast("Enter Location first!", "error");
-
-                const newTasks = [];
-                ids.forEach(id => {
-                    const member = state.members.find(m => m.userid === id);
-                    if (!member) { showToast(`User ID ${id} not found!`, "error"); return; }
-                    const isBusy = state.tasks.some(t => t.userid === id && !t.completed);
-                    if (isBusy) { showToast(`${id} is already busy!`, "info"); return; }
-                    
-                    newTasks.push({
-                        location: loc, bintype: 'Reserved', userid: id, username: member.name,
-                        starttime: new Date().toISOString(), completed: false
-                    });
-                });
-
-                if (newTasks.length > 0) {
-                    supabaseClient.from('tasks').insert(newTasks).then(({ error }) => {
-                        if (error) showToast(error.message, "error");
-                        else {
-                            showToast(`Assigned ${newTasks.length} counters to ${loc}`, "success");
-                            closeSessionModal();
-                            if (locInput) locInput.value = '';
-                            const taskInput = document.getElementById('modalTaskInput');
-                            if (taskInput) taskInput.value = '';
-                        }
-                    });
-                }
-                return;
-            }
-
             userId = userId.toString().trim();
             const index = state.members.findIndex(m => m.userid === userId);
 
@@ -2171,6 +1991,7 @@
             const member = state.members[index];
 
             // Productivity Mode Auto-Toggle
+            const isProductivityVisible = !document.getElementById('productivitySection').classList.contains('hidden');
             if (isProductivityVisible) {
                 const activeTaskIdx = state.tasks.findIndex(t => t.userid === userId && !t.completed);
                 
@@ -2315,44 +2136,17 @@
 
         async function updateStatus(index, newStatus) {
             const userId = state.members[index].userid;
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const updates = { status: newStatus };
             
-            if (newStatus === 'On Break') updates.breakout = timeStr;
-            if (newStatus === 'Present') {
-                updates.breakin = timeStr;
-                // Ensure date and shift are captured if starting a session via quick action
-                if (!state.members[index].timein || state.members[index].timein === '--') {
-                    updates.timein = timeStr;
-                    updates.date = getOperationalISO(now);
-                    let hr = now.getHours();
-                    updates.shift = (hr >= 6 && hr < 14) ? '1st' : (hr >= 14 && hr < 22 ? '2nd' : '3rd');
-                }
-            }
-            if (newStatus === 'Away') updates.timeout = timeStr;
+            if (newStatus === 'On Break') updates.breakout = now;
+            if (newStatus === 'Present') updates.breakin = now;
+            if (newStatus === 'Away') updates.timeout = now;
             
             await supabaseClient.from('members').update(updates).eq('userid', userId);
 
             // Close actions menu automatically
             document.querySelectorAll('li.show-actions').forEach(el => el.classList.remove('show-actions'));
-        }
-
-        async function reverseCheckout(index) {
-            const m = state.members[index];
-            const updates = {
-                status: 'Present',
-                timeout: '--'
-            };
-            
-            // If they were on break when they checked out, put them back on break
-            if (m.breakout && m.breakout !== '--' && (!m.breakin || m.breakin === '--')) {
-                updates.status = 'On Break';
-            }
-
-            const { error } = await supabaseClient.from('members').update(updates).eq('userid', m.userid);
-            if (error) showToast(error.message, "error");
-            else showToast(`Checkout reversed for ${m.name}`, "success");
         }
 
         async function resetAttendance(index) {
@@ -2367,53 +2161,42 @@
             document.querySelectorAll('li.show-actions').forEach(el => el.classList.remove('show-actions'));
         }
 
-        let pendingUploadType = 'schedule';
-        function openUploadSelector() { document.getElementById('uploadSelectModal').classList.remove('hidden'); }
-        function closeUploadSelector() { document.getElementById('uploadSelectModal').classList.add('hidden'); }
-        function triggerUpload(type) { pendingUploadType = type; closeUploadSelector(); document.getElementById('scheduleCsvInput').click(); }
-
-        async function handleUniversalUpload(event) {
+        async function handleScheduleUpload(event) {
             const file = event.target.files[0];
             if (!file || !supabaseClient) return;
 
             toggleLoader(true);
             const reader = new FileReader();
             reader.onload = async function(e) {
-                try {
-                    const text = e.target.result;
-                    const lines = text.split('\n');
-                    const payloads = [];
-                    
-                    if (pendingUploadType === 'schedule') {
-                        for (let i = 1; i < lines.length; i++) {
-                            const parts = lines[i].split(',').map(p => p.trim());
-                            if (parts.length >= 5) payloads.push({ date: parts[0], area: parts[1], shift: parts[2], time: parts[3], hc: parseInt(parts[4]) || 0 });
-                        }
-                    } else {
-                        for (let i = 1; i < lines.length; i++) {
-                            const parts = lines[i].split(',').map(p => p.trim());
-                            if (parts.length >= 3) payloads.push({ aisle: parts[0], area: parts[1], location: parts[2] });
-                        }
+                const text = e.target.result;
+                const lines = text.split('\n');
+                const newSchedules = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const parts = line.split(',');
+                    if (parts.length >= 5) {
+                        newSchedules.push({ 
+                            date: parts[0].trim(), 
+                            area: parts[1].trim(), 
+                            shift: parts[2].trim(), 
+                            time: parts[3].trim(), 
+                            hc: parseInt(parts[4].trim()) || 0 
+                        });
                     }
+                }
 
-                    if (payloads.length > 0) {
-                        const table = pendingUploadType === 'schedule' ? 'schedules' : 'locations';
-                        const { error } = await supabaseClient.from(table).insert(payloads);
-                        if (error) throw error;
-                        showToast(`${payloads.length} records uploaded to ${pendingUploadType}.`, "success");
-                        fetchInitialData();
-                    } else { showToast("No valid data found in CSV.", "error"); }
-                } catch (err) { showToast("Upload failed: " + err.message, "error"); }
-                finally { toggleLoader(false); event.target.value = ''; }
+                const { error } = await supabaseClient.from('schedules').insert(newSchedules);
+                toggleLoader(false);
+
+                if (error) {
+                    showToast("Error saving to Supabase: " + error.message, "error");
+                } else {
+                    showToast("Schedule saved to Supabase!", "success");
+                    fetchInitialData();
+                }
             };
             reader.readAsText(file);
-        }
-
-        async function deleteLocation(id) {
-            if (!confirm("Delete this location?")) return;
-            const { error } = await supabaseClient.from('locations').delete().eq('id', id);
-            if (error) showToast(error.message, "error");
-            else showToast("Location deleted.", "info");
         }
 
         let currentEditingSchedId = null;
@@ -2827,7 +2610,6 @@
         }
 
         let currentTaskStoppingIndex = -1;
-        let bulkStoppingTaskIds = [];
         function stopTimer(index) {
             currentTaskStoppingIndex = index;
             const task = state.tasks[index];
@@ -2842,31 +2624,25 @@
         async function saveQuantityData() {
             const sku = document.getElementById('modalSkuInput').value;
             
-            if (!sku) return showToast("Enter SKU count!", "error");
+            if (!sku) {
+                showToast("Enter SKU count!", "error");
+                return;
+            }
             
-            const updateData = {
+            const task = state.tasks[currentTaskStoppingIndex];
+            await supabaseClient.from('tasks').update({
                 skucount: sku || 0,
                 endtime: new Date().toISOString(),
                 completed: true
-            };
+            }).eq('id', task.id);
 
-            if (currentTaskStoppingIndex === -1 && bulkStoppingTaskIds.length > 0) {
-                const { error } = await supabaseClient.from('tasks').update(updateData).in('id', bulkStoppingTaskIds);
-                if (error) showToast(error.message, "error");
-                else showToast(`Bulk end successful for ${bulkStoppingTaskIds.length} users.`, "success");
-            } else if (currentTaskStoppingIndex !== -1) {
-                const task = state.tasks[currentTaskStoppingIndex];
-                const { error } = await supabaseClient.from('tasks').update(updateData).eq('id', task.id);
-                if (error) showToast(error.message, "error");
-                else showToast("Cycle count finished!", "success");
-            }
+            showToast("Cycle count finished!", "success");
             closeQuantityModal();
         }
 
         function closeQuantityModal() {
             document.getElementById('quantityModal').classList.add('hidden');
             currentTaskStoppingIndex = -1;
-            bulkStoppingTaskIds = [];
         }
 
         function toLocalISO(dateInput) {
@@ -2911,39 +2687,10 @@
             const scheduleEmptyState = document.getElementById('scheduleEmptyState');
             const scheduleTableWrapper = document.getElementById('scheduleTableWrapper');
             const scheduleVisualWrapper = document.getElementById('scheduleVisualWrapper');
-            const scheduleStorageWrapper = document.getElementById('scheduleStorageWrapper');
 
-            const filteredSchedules = state.schedules.filter(s => {
-                const schedISO = toLocalISO(s.date);
-                if (!schedISO) return true;
-                if (state.scheduleFilterFromDate && schedISO < toLocalISO(state.scheduleFilterFromDate)) return false;
-                if (state.scheduleFilterToDate && schedISO > toLocalISO(state.scheduleFilterToDate)) return false;
-                return true;
-            });
-
-            if (state.scheduleView === 'storage') {
-                if(scheduleTableWrapper) scheduleTableWrapper.classList.add('hidden');
-                if(scheduleVisualWrapper) scheduleVisualWrapper.classList.add('hidden');
-                if(scheduleStorageWrapper) scheduleStorageWrapper.classList.remove('hidden');
-                if(scheduleEmptyState) scheduleEmptyState.classList.add('hidden');
-                
-                const locationList = document.getElementById('locationList');
-                if (locationList) {
-                    locationList.innerHTML = state.locations.map(loc => `
-                        <li class="schedule-row">
-                            <div style="flex: 1;">${loc.aisle || '--'}</div>
-                            <div style="flex: 1;">${loc.area || '--'}</div>
-                            <div style="flex: 2; font-weight: 700; color: var(--primary);">${loc.location || '--'}</div>
-                            <div style="flex: 0.6; display: flex; justify-content: flex-end; padding-right: 5px;">
-                                <button class="btn-action-sm" onclick="deleteLocation('${loc.id}')" style="color:var(--danger)"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>
-                            </div>
-                        </li>
-                    `).join('') || '<div class="empty-state">No locations found.</div>';
-                }
-            } else if (state.scheduleView === 'visual') {
-                if(scheduleTableWrapper) scheduleTableWrapper.classList.add('hidden');
-                if(scheduleVisualWrapper) scheduleVisualWrapper.classList.remove('hidden');
-                if(scheduleStorageWrapper) scheduleStorageWrapper.classList.add('hidden');
+            if (state.scheduleView === 'visual') {
+                scheduleTableWrapper.classList.add('hidden');
+                scheduleVisualWrapper.classList.remove('hidden');
                 const grouped = {};
                 const todayISO = getOperationalISO(new Date());
 
@@ -2988,12 +2735,27 @@
                         </div>`;
                 }).join('');
             } else {
-                if(scheduleTableWrapper) scheduleTableWrapper.classList.remove('hidden');
-                if(scheduleVisualWrapper) scheduleVisualWrapper.classList.add('hidden');
-                if(scheduleStorageWrapper) scheduleStorageWrapper.classList.add('hidden');
+                scheduleTableWrapper.classList.remove('hidden');
+                scheduleVisualWrapper.classList.add('hidden');
+            }
+
+            if (scheduleList) {
+                const filteredSchedules = state.schedules.filter(s => {
+                    const schedISO = toLocalISO(s.date);
+                    if (!schedISO) return true;
+
+                    if (state.scheduleFilterFromDate) {
+                        if (schedISO < toLocalISO(state.scheduleFilterFromDate)) return false;
+                    }
+                    if (state.scheduleFilterToDate) {
+                        if (schedISO > toLocalISO(state.scheduleFilterToDate)) return false;
+                    }
+                    return true;
+                });
 
                 if (filteredSchedules.length > 0) {
                     if (scheduleEmptyState) scheduleEmptyState.classList.add('hidden');
+                    if (scheduleTableWrapper) scheduleTableWrapper.classList.remove('hidden');
                     scheduleList.innerHTML = filteredSchedules.map(s => `
                         <li class="schedule-row">
                             <div style="flex: 1.2 1 0%; font-weight: 600;">${s.date}</div>
@@ -3028,9 +2790,6 @@
             const searchInput = document.getElementById('globalSearchInput');
             const globalSearch = searchInput ? searchInput.value.toLowerCase() : '';
             const searchOverlay = document.getElementById('globalSearchOverlay');
-
-            const regSearchInput = document.getElementById('registerSearchInput');
-            const regSearch = regSearchInput ? regSearchInput.value.toLowerCase() : '';
 
             // Clean UI when searching
             const isMobile = window.innerWidth <= 768;
@@ -3090,8 +2849,7 @@
             const filteredRegister = state.members
                 .map((m, i) => ({ ...m, index: i }))
                 .filter(m => 
-                    (m.name.toLowerCase().includes(globalSearch) || (m.userid && m.userid.toLowerCase().includes(globalSearch))) &&
-                    (m.name.toLowerCase().includes(regSearch) || (m.userid && m.userid.toLowerCase().includes(regSearch)))
+                    (m.name.toLowerCase().includes(globalSearch) || (m.userid && m.userid.toLowerCase().includes(globalSearch)))
                 );
 
             // Render Attendance List (Check-in view)
@@ -3161,12 +2919,6 @@
 
                     if (!isAwayAndTimedIn) return false;
 
-                    // By default, if no filter is set, only show check-outs for the current operational day
-                    // to avoid seeing "yesterday's" data.
-                    if (!historyFromDate && !historyToDate) {
-                        if (toLocalISO(m.date) !== operationalISO) return false;
-                    }
-
                     // Date filtering
                     if (historyFromDate && m.date) {
                         const memberDate = new Date(m.date);
@@ -3205,9 +2957,6 @@
                                 <div class="col-status"><span class="status-badge away">${m.status}</span></div>
                             </div>
                             <div class="col-actions">
-                                <button class="btn-action-sm" onclick="reverseCheckout(${m.index})" title="Undo Checkout" style="color:var(--success)">
-                                    <span class="material-symbols-outlined">undo</span>
-                                </button>
                                 <button class="btn-action-sm details" onclick="showMemberDetails(${m.index})"><span class="material-symbols-outlined">info</span></button>
                                 <button class="btn-action-sm" onclick="resetAttendance(${m.index})" style="color:var(--danger)"><span class="material-symbols-outlined">restart_alt</span></button>
                             </div>
@@ -3281,14 +3030,14 @@
                 const registerLimit = displayLimits.register;
                 registerList.innerHTML = filteredRegister.length ? registerHeader + filteredRegister.slice(0, registerLimit).map((m) => `
                     <li>
-                        <div class="col-id">${highlightMatch(m.userid, regSearch || globalSearch)}</div>
+                        <div class="col-id">${m.userid}</div>
                         <div class="col-role">${m.role || '--'}</div>
                         <div class="col-info">
-                            <div style="font-weight:600; font-size:0.9rem">${highlightMatch(m.name, regSearch || globalSearch)}</div>
+                            <div style="font-weight:600; font-size:0.9rem">${m.name}</div>
                         </div>
                         <div class="mobile-meta-row">
                             <span class="col-role">${m.role || '--'}</span>
-                            <span style="font-size:0.7rem; color:var(--text-light)">ID: ${highlightMatch(m.userid, regSearch || globalSearch)}</span>
+                            <span style="font-size:0.7rem; color:var(--text-light)">ID: ${m.userid}</span>
                         </div>
                         <div class="col-actions">
                             <button class="btn-action-sm" onclick="openEditModal(${m.index})" title="Edit Member">
@@ -3400,14 +3149,14 @@
                 // Filter for Direct Counters/Back ups who clocked into this shift today
                 const shiftMembers = state.members.filter(m => 
                     m.shift === s && 
-                    (toLocalISO(m.date) === operationalISO || m.date === operationalISO) && 
-                    (m.role && counterRoles.includes(m.role))
+                    toLocalISO(m.date) === operationalISO && 
+                    counterRoles.includes(m.role)
                 );
                 
                 let req = 0;
                 if (state.schedules && state.schedules.length > 0) {
                     const matchingScheds = state.schedules.filter(sched => {
-                        return (toLocalISO(sched.date) === operationalISO || sched.date === operationalISO) && 
+                        return toLocalISO(sched.date) === operationalISO && 
                                sched.shift.toLowerCase().includes(s.toLowerCase());
                     });
                     if (matchingScheds.length > 0) {
@@ -3544,61 +3293,6 @@
         }
         setInterval(updateClock, 1000);
 
-        // Swipe-to-Action Logic
-        let touchStartX = 0;
-        let touchStartY = 0;
-        let activeSwipedEl = null;
-
-        document.addEventListener('touchstart', e => {
-            const li = e.target.closest('li');
-            if (!li) return;
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        }, { passive: true });
-
-        document.addEventListener('touchend', e => {
-            const li = e.target.closest('li');
-            if (!li || !touchStartX) return;
-
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-            const dx = touchEndX - touchStartX;
-            const dy = touchEndY - touchStartY;
-
-            // Thresholds: horizontal > 40px and clear horizontal intent
-            if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-                if (dx < 0) { // Swipe Left
-                    if (activeSwipedEl && activeSwipedEl !== li) activeSwipedEl.classList.remove('swiped');
-                    li.classList.add('swiped');
-                    activeSwipedEl = li;
-                } else { // Swipe Right
-                    li.classList.remove('swiped');
-                    if (activeSwipedEl === li) activeSwipedEl = null;
-                }
-            }
-            touchStartX = 0;
-        }, { passive: true });
-
-        document.addEventListener('click', e => {
-            if (activeSwipedEl && !activeSwipedEl.contains(e.target)) {
-                activeSwipedEl.classList.remove('swiped');
-                activeSwipedEl = null;
-            }
-        });
-
-        // Basic Deterrents (Note: These can be bypassed by advanced users)
-        document.addEventListener('contextmenu', event => event.preventDefault()); // Disable Right-Click
-        
-        document.onkeydown = function(e) {
-            // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
-            if(e.keyCode == 123 || 
-               (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) || 
-               (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) {
-                showToast("Source inspection is disabled.", "error");
-                return false;
-            }
-        };
-
         function checkThresholdAlerts() {
             const now = new Date();
             let alertTriggered = false;
@@ -3656,6 +3350,11 @@
         } else {
             render();
         }
+
+        // Auto-refresh data and UI every 2 seconds
+        setInterval(() => {
+            if (supabaseClient) fetchInitialData().catch(console.error);
+        }, 2000);
     </script>
 </body>
 </html>
