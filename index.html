@@ -1564,6 +1564,7 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const msg = document.getElementById('authMsg');
+            toggleLoader(true);
             
             try {
                 let result;
@@ -1581,6 +1582,8 @@
             } catch (error) {
                 msg.innerText = error.message;
                 showToast(error.message, "error");
+            } finally {
+                toggleLoader(false);
             }
         }
 
@@ -1750,7 +1753,7 @@
             if (session) {
                 authView.classList.add('hidden');
                 dashboardView.classList.remove('hidden');
-                render();
+                fetchInitialData(true);
             } else {
                 authView.classList.remove('hidden');
                 dashboardView.classList.add('hidden');
@@ -1910,6 +1913,7 @@
                 return;
             }
 
+            toggleLoader(true);
             const memberData = {
                 userid: idInput.value,
                 name: nameInput.value,
@@ -1917,6 +1921,7 @@
             };
 
             const { error } = await supabaseClient.from('members').upsert(memberData);
+            toggleLoader(false);
             
             if (error) return showToast(error.message, "error");
             
@@ -2123,13 +2128,17 @@
         function processScannedUserId(userId, action = null) {
             if (!userId) return;
             const isProductivityVisible = !document.getElementById('productivitySection').classList.contains('hidden');
+            userId = userId.toString().trim();
 
             // Bulk Assignment Logic for Reserved Locations (e.g., "IC1, IC2, IC3")
-            if (isProductivityVisible && action === 'start' && currentBinType === 'Reserved' && userId.toString().includes(',')) {
-                const ids = userId.toString().split(',').map(id => id.trim()).filter(id => id);
+            if (isProductivityVisible && action === 'start' && currentBinType === 'Reserved' && userId.includes(',')) {
+                const ids = userId.split(',').map(id => id.trim()).filter(id => id);
                 const locInput = document.getElementById('modalLocationInput');
                 const loc = locInput ? locInput.value.trim() : '';
                 if (!loc) return showToast("Enter Location first!", "error");
+
+                const locExists = state.locations.some(l => l.location.toLowerCase() === loc.toLowerCase());
+                if (!locExists) return showToast("Location not found in Storage list!", "error");
 
                 const newTasks = [];
                 ids.forEach(id => {
@@ -2149,17 +2158,37 @@
                         if (error) showToast(error.message, "error");
                         else {
                             showToast(`Assigned ${newTasks.length} counters to ${loc}`, "success");
-                            closeSessionModal();
                             if (locInput) locInput.value = '';
                             const taskInput = document.getElementById('modalTaskInput');
-                            if (taskInput) taskInput.value = '';
+                            if (taskInput) {
+                                taskInput.value = '';
+                                taskInput.focus();
+                            }
                         }
                     });
                 }
                 return;
             }
 
-            userId = userId.toString().trim();
+            // Bulk Attendance Logic
+            if (!isProductivityVisible && userId.includes(',')) {
+                const ids = userId.split(',').map(id => id.trim()).filter(id => id);
+                const validMembers = state.members.filter(m => ids.includes(m.userid));
+                
+                if (validMembers.length === 0) {
+                    showToast("No valid User IDs found!", "error");
+                    return;
+                }
+
+                pendingUserId = ids;
+                document.getElementById('scannedMemberName').innerText = `${validMembers.length} Members Selected`;
+                document.getElementById('scannedMemberId').innerText = validMembers.map(m => m.name).join(', ');
+                
+                if (document.getElementById('scanOverlay').classList.contains('show')) toggleScanOverlay();
+                document.getElementById('scanActionModal').classList.remove('hidden');
+                return;
+            }
+
             const index = state.members.findIndex(m => m.userid === userId);
 
             if (index === -1) {
@@ -2190,11 +2219,13 @@
                     } else {
                         if (currentBinType === 'Pick') {
                             document.getElementById('zoneModal').classList.remove('hidden');
-                            closeSessionModal();
                         } else {
                             const locInput = document.getElementById('modalLocationInput');
                             const loc = locInput ? locInput.value.trim() : '';
                         if (!loc) return showToast("Enter Location first!", "error");
+
+                        const locExists = state.locations.some(l => l.location.toLowerCase() === loc.toLowerCase());
+                        if (!locExists) return showToast("Location not found in Storage list!", "error");
                         
                         supabaseClient.from('tasks').insert({
                             location: loc,
@@ -2207,10 +2238,14 @@
                             if (error) showToast(error.message, "error");
                             else {
                                 showToast("Cycle count started!", "success");
-                                closeSessionModal();
+                                if (locInput) locInput.value = '';
+                                const taskInput = document.getElementById('modalTaskInput');
+                                if (taskInput) {
+                                    taskInput.value = '';
+                                    taskInput.focus();
+                                }
                             }
                         });
-                        if (locInput) locInput.value = '';
                         }
                     }
                 }
@@ -2235,11 +2270,33 @@
             pendingUserId = null;
         }
 
-        function executeScanAction(action) {
+        async function executeScanAction(action) {
             if (!pendingUserId) return;
-            const index = state.members.findIndex(m => m.userid === pendingUserId);
-            const member = state.members[index];
-            
+            const ids = Array.isArray(pendingUserId) ? pendingUserId : [pendingUserId];
+            const validIds = [];
+
+            for (const id of ids) {
+                const m = state.members.find(member => member.userid === id);
+                if (!m) continue;
+
+                if (action === 'On Break' && (!m.timein || m.timein === '--')) {
+                    showToast(`${m.name}: Cannot Break Out without Time In!`, "error");
+                    continue;
+                }
+                if (action === 'Break In' && (!m.breakout || m.breakout === '--')) {
+                    showToast(`${m.name}: Cannot Break In without Break Out!`, "error");
+                    continue;
+                }
+                if (action === 'Away' && (!m.timein || m.timein === '--')) {
+                    showToast(`${m.name}: Cannot Time Out without Time In!`, "error");
+                    continue;
+                }
+                validIds.push(id);
+            }
+
+            if (validIds.length === 0) return closeScanActionModal();
+
+            toggleLoader(true);
             const updates = {};
             const now = new Date();
             const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -2263,11 +2320,10 @@
                 updates.timeout = timeStr;
             }
 
-            supabaseClient.from('members').update(updates).eq('userid', pendingUserId)
-            .then(({ error }) => {
-                if (error) throw error;
-                showToast(`${action} successful!`, "success");
-            });
+            const { error } = await supabaseClient.from('members').update(updates).in('userid', validIds);
+            toggleLoader(false);
+            if (error) showToast(error.message, "error");
+            else showToast(`${action} successful for ${validIds.length} members!`, "success");
             
             closeScanActionModal();
         }
@@ -2282,13 +2338,51 @@
             setTimeout(() => scanInput.placeholder = originalPlaceholder, 2000);
         }
 
-        function quickAction(status) {
+        async function quickAction(status) {
             const scanInput = document.getElementById('scanInput');
             const userId = scanInput.value.trim();
             if (!userId) return;
 
+            if (userId.includes(',')) {
+                const ids = userId.split(',').map(id => id.trim()).filter(id => id);
+                if (status === 'Present') {
+                    return processScannedUserId(userId);
+                } else {
+                    const validIds = [];
+                    for (const id of ids) {
+                        const m = state.members.find(member => member.userid === id);
+                        if (!m) continue;
+
+                        if (status === 'On Break' && (!m.timein || m.timein === '--')) {
+                            showToast(`${m.name}: Cannot Break Out without Time In!`, "error");
+                            continue;
+                        }
+                        if (status === 'Away' && (!m.timein || m.timein === '--')) {
+                            showToast(`${m.name}: Cannot Time Out without Time In!`, "error");
+                            continue;
+                        }
+                        validIds.push(id);
+                    }
+
+                    if (validIds.length === 0) return;
+
+                    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const updates = { status: status };
+                    if (status === 'On Break') updates.breakout = now;
+                    if (status === 'Away') updates.timeout = now;
+                    
+                    await supabaseClient.from('members').update(updates).in('userid', validIds);
+                    showToast(`${status} updated for ${validIds.length} members!`, "success");
+                    
+                    const originalPlaceholder = scanInput.placeholder;
+                    scanInput.value = '';
+                    scanInput.placeholder = `Bulk ${status} processed...`;
+                    setTimeout(() => scanInput.placeholder = originalPlaceholder, 2000);
+                }
+                return;
+            }
+
             const index = state.members.findIndex(m => m.userid === userId);
-            if (index === -1) return alert("User ID not found!");
             if (index === -1) return showToast("User ID not found!", "error");
 
             if (status === 'Present') {
@@ -2315,6 +2409,18 @@
 
         async function updateStatus(index, newStatus) {
             const userId = state.members[index].userid;
+            const m = state.members[index];
+
+            if (newStatus === 'On Break' && (!m.timein || m.timein === '--')) {
+                return showToast(`${m.name}: Cannot Break Out without Time In!`, "error");
+            }
+            if (newStatus === 'Present' && m.status === 'On Break' && (!m.breakout || m.breakout === '--')) {
+                return showToast(`${m.name}: Cannot Break In without Break Out!`, "error");
+            }
+            if (newStatus === 'Away' && (!m.timein || m.timein === '--')) {
+                return showToast(`${m.name}: Cannot Time Out without Time In!`, "error");
+            }
+
             const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const updates = { status: newStatus };
             
@@ -2409,6 +2515,7 @@
 
         async function saveScheduleUpdate() {
             if (!currentEditingSchedId || !supabaseClient) return;
+            toggleLoader(true);
             const updates = {
                 date: document.getElementById('schedDateInput').value,
                 area: document.getElementById('schedAreaInput').value,
@@ -2417,6 +2524,7 @@
                 hc: parseInt(document.getElementById('schedHcInput').value) || 0
             };
             const { error } = await supabaseClient.from('schedules').update(updates).eq('id', currentEditingSchedId);
+            toggleLoader(false);
             if (error) showToast(error.message, "error");
             else {
                 showToast("Schedule updated!", "success");
@@ -2794,7 +2902,14 @@
             });
             
             if (error) showToast(error.message, "error");
-            else showToast("Cycle count started!", "success");
+            else {
+                showToast("Cycle count started!", "success");
+                const taskInput = document.getElementById('modalTaskInput');
+                if (taskInput) {
+                    taskInput.value = '';
+                    taskInput.focus();
+                }
+            }
             
             closeZoneModal();
         }
@@ -2817,6 +2932,7 @@
             
             if (!sku) return showToast("Enter SKU count!", "error");
             
+            toggleLoader(true);
             const updateData = {
                 skucount: sku || 0,
                 endtime: new Date().toISOString(),
@@ -2825,11 +2941,13 @@
 
             if (currentTaskStoppingIndex === -1 && bulkStoppingTaskIds.length > 0) {
                 const { error } = await supabaseClient.from('tasks').update(updateData).in('id', bulkStoppingTaskIds);
+                toggleLoader(false);
                 if (error) showToast(error.message, "error");
                 else showToast(`Bulk end successful for ${bulkStoppingTaskIds.length} users.`, "success");
             } else if (currentTaskStoppingIndex !== -1) {
                 const task = state.tasks[currentTaskStoppingIndex];
                 const { error } = await supabaseClient.from('tasks').update(updateData).eq('id', task.id);
+                toggleLoader(false);
                 if (error) showToast(error.message, "error");
                 else showToast("Cycle count finished!", "success");
             }
@@ -3602,7 +3720,7 @@
         switchSummarySubTab(state.activeSummarySubTab || 'shift');
 
         if (supabaseClient) {
-            fetchInitialData();
+            fetchInitialData(true);
             initRealtime();
             // Add auto-refresh every 2 seconds to ensure sync across all devices
             setInterval(() => fetchInitialData(), 2000);
