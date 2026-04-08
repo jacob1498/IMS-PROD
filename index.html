@@ -3604,6 +3604,8 @@
         if (supabaseClient) {
             fetchInitialData();
             initRealtime();
+            // Add auto-refresh every 2 seconds to ensure sync across all devices
+            setInterval(() => fetchInitialData(), 2000);
         } else {
             render();
         }
