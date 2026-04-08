@@ -2315,12 +2315,22 @@
 
         async function updateStatus(index, newStatus) {
             const userId = state.members[index].userid;
-            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const updates = { status: newStatus };
             
-            if (newStatus === 'On Break') updates.breakout = now;
-            if (newStatus === 'Present') updates.breakin = now;
-            if (newStatus === 'Away') updates.timeout = now;
+            if (newStatus === 'On Break') updates.breakout = timeStr;
+            if (newStatus === 'Present') {
+                updates.breakin = timeStr;
+                // Ensure date and shift are captured if starting a session via quick action
+                if (!state.members[index].timein || state.members[index].timein === '--') {
+                    updates.timein = timeStr;
+                    updates.date = getOperationalISO(now);
+                    let hr = now.getHours();
+                    updates.shift = (hr >= 6 && hr < 14) ? '1st' : (hr >= 14 && hr < 22 ? '2nd' : '3rd');
+                }
+            }
+            if (newStatus === 'Away') updates.timeout = timeStr;
             
             await supabaseClient.from('members').update(updates).eq('userid', userId);
 
@@ -3390,14 +3400,14 @@
                 // Filter for Direct Counters/Back ups who clocked into this shift today
                 const shiftMembers = state.members.filter(m => 
                     m.shift === s && 
-                    toLocalISO(m.date) === operationalISO && 
-                    counterRoles.includes(m.role)
+                    (toLocalISO(m.date) === operationalISO || m.date === operationalISO) && 
+                    (m.role && counterRoles.includes(m.role))
                 );
                 
                 let req = 0;
                 if (state.schedules && state.schedules.length > 0) {
                     const matchingScheds = state.schedules.filter(sched => {
-                        return toLocalISO(sched.date) === operationalISO && 
+                        return (toLocalISO(sched.date) === operationalISO || sched.date === operationalISO) && 
                                sched.shift.toLowerCase().includes(s.toLowerCase());
                     });
                     if (matchingScheds.length > 0) {
