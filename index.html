@@ -2328,6 +2328,23 @@
             document.querySelectorAll('li.show-actions').forEach(el => el.classList.remove('show-actions'));
         }
 
+        async function reverseCheckout(index) {
+            const m = state.members[index];
+            const updates = {
+                status: 'Present',
+                timeout: '--'
+            };
+            
+            // If they were on break when they checked out, put them back on break
+            if (m.breakout && m.breakout !== '--' && (!m.breakin || m.breakin === '--')) {
+                updates.status = 'On Break';
+            }
+
+            const { error } = await supabaseClient.from('members').update(updates).eq('userid', m.userid);
+            if (error) showToast(error.message, "error");
+            else showToast(`Checkout reversed for ${m.name}`, "success");
+        }
+
         async function resetAttendance(index) {
             if (!confirm("Undo check-in for this member? This will clear all timestamps for this session.")) return;
             const userId = state.members[index].userid;
@@ -3134,6 +3151,12 @@
 
                     if (!isAwayAndTimedIn) return false;
 
+                    // By default, if no filter is set, only show check-outs for the current operational day
+                    // to avoid seeing "yesterday's" data.
+                    if (!historyFromDate && !historyToDate) {
+                        if (toLocalISO(m.date) !== operationalISO) return false;
+                    }
+
                     // Date filtering
                     if (historyFromDate && m.date) {
                         const memberDate = new Date(m.date);
@@ -3172,6 +3195,9 @@
                                 <div class="col-status"><span class="status-badge away">${m.status}</span></div>
                             </div>
                             <div class="col-actions">
+                                <button class="btn-action-sm" onclick="reverseCheckout(${m.index})" title="Undo Checkout" style="color:var(--success)">
+                                    <span class="material-symbols-outlined">undo</span>
+                                </button>
                                 <button class="btn-action-sm details" onclick="showMemberDetails(${m.index})"><span class="material-symbols-outlined">info</span></button>
                                 <button class="btn-action-sm" onclick="resetAttendance(${m.index})" style="color:var(--danger)"><span class="material-symbols-outlined">restart_alt</span></button>
                             </div>
@@ -3549,6 +3575,19 @@
                 activeSwipedEl = null;
             }
         });
+
+        // Basic Deterrents (Note: These can be bypassed by advanced users)
+        document.addEventListener('contextmenu', event => event.preventDefault()); // Disable Right-Click
+        
+        document.onkeydown = function(e) {
+            // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+            if(e.keyCode == 123 || 
+               (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) || 
+               (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) {
+                showToast("Source inspection is disabled.", "error");
+                return false;
+            }
+        };
 
         function checkThresholdAlerts() {
             const now = new Date();
