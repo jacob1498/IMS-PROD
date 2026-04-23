@@ -1318,7 +1318,6 @@
                             <span class="material-symbols-outlined">visibility</span>
                         </button>
                         <select id="excessDcFilter" onchange="state.activeDcCode = this.value; saveData();" style="font-size: 0.75rem; padding: 4px; border: 1px solid var(--border); border-radius: 4px; width: 110px; font-weight: bold; color: var(--primary);">
-                            <option value="">ALL DCs</option>
                             <option value="">SELECT DC</option>
                             <option value="2367">DC 2367</option>
                             <option value="7132">DC 7132</option>
@@ -4105,6 +4104,19 @@
                     else if (id === 'excessScannerInput' && localStorage.getItem('preferredScannerId')) el.value = localStorage.getItem('preferredScannerId');
                 }
             });
+
+            // Disable scanning form if no DC is selected
+            const isDcMissing = !state.activeDcCode;
+            ['excessScannerInput', 'excessAssistant1Input', 'excessAssistant2Input', 'excessBarcode', 'excessQty', 'excessBox', 'excessPallet'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.disabled = isDcMissing;
+                    el.style.opacity = isDcMissing ? '0.5' : '1';
+                    el.style.transition = 'opacity 0.2s';
+                }
+            });
+            const boxBtn = document.querySelector('button[onclick="generateBoxNumber()"]');
+            if (boxBtn) { boxBtn.disabled = isDcMissing; boxBtn.style.opacity = isDcMissing ? '0.5' : '1'; }
 
             // Render Excess Scan List
             const excessScanList = document.getElementById('excessScanList');
