@@ -13,6 +13,11 @@
     <!-- QR Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         :root {
             --primary: #6366f1;
             --primary-dark: #4f46e5;
@@ -31,7 +36,9 @@
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
-            padding: 20px;
+            padding: 20px; 
+            padding-bottom: 100px !important; /* Fixed space for footer */
+            overscroll-behavior-y: none; /* Prevents pull-to-refresh "bounce" */
         }
 
         .container {
@@ -157,19 +164,36 @@
 
         /* Footer Navigation (Mobile Only) */
         .footer-nav {
-            display: none;
+            display: flex;
             position: fixed;
-            bottom: 0; left: 0; right: 0;
-            background: var(--card);
+            bottom: 0; 
+            left: 0; 
+            right: 0;
+            width: 100% !important;
+            height: 75px; /* Explicit height */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-top: 1px solid var(--border);
-            padding: 8px 0;
-            z-index: 1000;
+            padding: 0;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            z-index: 1100;
             justify-content: space-around;
             align-items: center;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            user-select: none;
+            will-change: transform; /* Promotes to hardware layer for stability */
         }
+        
+        @media (min-width: 769px) {
+            .footer-nav {
+                padding-left: 25%;
+                padding-right: 25%;
+            }
+        }
+
         .footer-nav-item {
-            display: flex; flex-direction: column; align-items: center; gap: 2px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
             background: none; border: none; color: var(--text-light);
             padding: 4px; font-size: 0.65rem; font-weight: 700; cursor: pointer;
             width: 20%; transition: color 0.2s;
@@ -177,8 +201,24 @@
         .footer-nav-item.active { color: var(--primary); }
         .footer-nav-item .material-symbols-outlined { font-size: 24px; }
 
-        #attendanceList, #historyList, #registerList {
-            padding-bottom: 80px;
+        /* Badge Styles */
+        .badge-container { position: relative; display: inline-flex; }
+        .badge {
+            position: absolute;
+            top: -5px;
+            right: -8px;
+            background: var(--danger);
+            color: white;
+            font-size: 0.6rem;
+            font-weight: 900;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--card);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         li {
@@ -260,6 +300,20 @@
 
         .task-done { text-decoration: line-through; color: #94a3b8; }
         
+        /* Checklist Styles */
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            border-bottom: 1px solid var(--bg);
+            transition: background 0.2s;
+        }
+        .checklist-item:hover { background: #f8fafc; }
+        .checklist-item label { flex: 1; cursor: pointer; font-weight: 500; }
+        .checklist-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+        .checklist-item.completed label { text-decoration: line-through; color: var(--text-light); }
+
         .empty-state { text-align: center; color: var(--text-light); padding: 20px; font-style: italic; font-size: 0.9rem; }
         .col-duration { width: 60px; text-align: center; font-weight: 800; font-size: 0.85rem; }
 
@@ -445,7 +499,11 @@
 
         /* Media Queries should always be at the bottom to correctly override base styles */
         @media (max-width: 768px) {
-            body { padding: 0; padding-bottom: 80px; }
+            body { 
+                padding: 0; 
+                padding-bottom: calc(85px + env(safe-area-inset-bottom, 20px)) !important; 
+                overflow-x: hidden; /* Prevent horizontal jitter */
+            }
             .container { padding: 15px; width: 100%; box-sizing: border-box; }
             
             /* Hide only the main Attendance/Productivity toggle on mobile as it's in the footer/sidebar */
@@ -454,7 +512,7 @@
             .tab-group button { font-size: 0.75rem !important; padding: 8px 4px; }
             #mobileMenuBtn { display: flex; }
             
-            header { margin: 0; padding: 15px 0; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1050; }
+            header { margin: 0; padding: 15px 0; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1050; width: 100%; box-sizing: border-box; }
             header h1 { font-size: 1.5rem; margin: 0; color: var(--text); }
             h2 { top: 60px; }
             
@@ -465,10 +523,20 @@
             /* FAB & Footer Navigation Visibility */
             .scan-fab { display: flex !important; bottom: 85px; right: 20px; }
             #checkinSubSection .scan-area { display: none; }
-            .footer-nav { display: flex !important; }
-            body { padding-bottom: 80px; }
+            
+            /* Fixed & Stable Scan Excess Form on Mobile */
+            /* Hide Scan Excess Form on Mobile for Footer Stability */
+            #excessScanForm { 
+                display: block !important; 
+                margin-bottom: 20px; 
+                padding: 16px !important; 
+                border-top: 4px solid var(--primary); 
+                display: none !important; 
+            }
+            #excessScanForm > div { grid-template-columns: 1fr !important; gap: 10px !important; }
+            #excessScanForm input, #excessScanForm select { font-size: 16px !important; }
 
-            .table-header { display: none; }
+            .table-header:not(#excessScanSection .table-header):not(#scheduleSection .table-header) { display: none !important; }
             li { 
                 flex-direction: column; 
                 align-items: flex-start; 
@@ -544,6 +612,13 @@
             li.swiped .col-actions {
                 right: -120px; /* Moves with the translated LI */
             }
+
+            /* Excess Scan Mobile Tweaks - Small View */
+            #excessScanSection .table-header { display: flex !important; font-size: 0.55rem !important; padding: 6px 0 !important; margin-bottom: 0; background: #f8fafc; border-bottom: 1px solid var(--border); }
+            #excessScanSection .table-header > div { padding: 0 2px !important; }
+            #excessScanSection .schedule-row > div { font-size: 0.6rem !important; padding: 8px 2px !important; }
+            #excessScanSection .table-header { position: sticky; top: 90px; z-index: 850; }
+            #excessScanSection .schedule-row { display: flex !important; flex-direction: row !important; grid-template-columns: none !important; grid-template-areas: none !important; margin-bottom: 0 !important; border-radius: 0 !important; border-left: 3px solid var(--border) !important; border-bottom: 1px solid var(--border) !important; }
         }
 
         /* Global Search Overlay Styles */
@@ -618,13 +693,6 @@
         @keyframes toastIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes toastOut { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-20px); opacity: 0; } }
 
-        .dashboard-footer {
-            margin-top: 40px;
-            padding: 20px;
-            text-align: center;
-            border-top: 1px solid var(--border);
-        }
-
         /* Loading Spinner */
         .loader-overlay {
             position: fixed;
@@ -652,21 +720,29 @@
         }
 
         /* Excel-like Schedule Styles */
-        #scheduleSection .card { padding: 0 !important; overflow: hidden; }
-        #scheduleSection .table-header {
+        #scheduleSection .card, #excessScanSection .card:has(#excessScanList) { padding: 0 !important; overflow: visible !important; border: 1px solid var(--border); }
+        #scheduleSection .table-header, #excessScanSection .table-header {
             display: flex !important;
             padding: 0 !important;
             margin-bottom: 0;
-            border-bottom: 2px solid var(--border);
+            border-bottom: 1px solid var(--text-light);
             background: #f1f5f9;
             border-radius: 0;
+            position: sticky;
+            top: 110px; /* Desktop sticky position below sticky H2 (80px) */
+            z-index: 850;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        #scheduleSection .table-header > div {
+        #scheduleSection .table-header > div, #excessScanSection .table-header > div {
             padding: 10px 5px;
-            border-right: 1px solid var(--border);
+            border-right: 1px solid #cbd5e1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         #scheduleSection .table-header > div:last-child { border-right: none; }
 
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         .schedule-row {
             display: flex !important;
             align-items: stretch !important;
@@ -679,14 +755,18 @@
         }
         .schedule-row > div {
             padding: 8px 5px !important;
-            border-right: 1px solid var(--border);
+            border-right: 1px solid #e2e8f0;
             display: flex;
             align-items: center;
             font-size: 0.85rem;
-            word-break: break-all;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
         }
         .schedule-row > div:last-child { border-right: none; }
         .schedule-row:nth-child(even) { background-color: #f8fafc !important; }
+        .schedule-row:hover { background-color: #f1f5f9 !important; }
         
         /* Location Suggestions */
         .suggestion-list {
@@ -727,15 +807,41 @@
             #scheduleSection .table-header > div { font-size: 0.55rem !important; padding: 8px 2px !important; }
             .schedule-row { 
                 display: flex !important; 
+                /* For the excess scan section, hide the table-like display */
+                /* This includes the table header and the list of individual scans */
+                /* #excessScanSection .table-header { display: none !important; } */
                 grid-template-columns: none !important; 
                 grid-template-areas: none !important;
-                border-left: none !important; 
+                border-left: 4px solid var(--border) !important; 
                 flex-direction: row !important;
-                box-shadow: none !important;
+                margin-bottom: 8px !important;
+                border-radius: 8px !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
             }
-            .schedule-row > div { font-size: 0.6rem !important; padding: 6px 2px !important; }
+            /* Hide the table header and the actual list of scans on mobile for excess scan feature */
+            #excessScanSection .table-header { display: none !important; }
+            #excessScanSection #excessScanList { display: none !important; }
+
+            .schedule-row > div { font-size: 0.65rem !important; padding: 10px 4px !important; }
             .sched-shift-container { grid-template-columns: 1fr; }
         }
+
+        /* Skeleton Loading Styles */
+        .skeleton {
+            background: #e2e8f0;
+            background-image: linear-gradient(90deg, #e2e8f0 0px, #f1f5f9 40px, #e2e8f0 80px);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -150% 0; }
+            100% { background-position: 150% 0; }
+        }
+
+        .skeleton-card { height: 120px; width: 100%; }
     </style>
 </head>
 <body>
@@ -819,11 +925,17 @@
                         <span class="material-symbols-outlined">description</span> Export PDF
                     </button>
                 </div>
-
-                <div id="side-scheduleMenu" class="sidebar-nav-group hidden">
-                    <small>Schedule Management</small>
-                    <button onclick="toggleSidebar()">
-                        <span class="material-symbols-outlined">event</span> View Roster
+                
+                <div id="side-moreMenu" class="sidebar-nav-group hidden">
+                    <small>Management & Ops</small>
+                    <button id="side-moreTabBtn" onclick="switchFooterTab('more'); toggleSidebar();">
+                        <span class="material-symbols-outlined">more_horiz</span> Other Menu
+                    </button>
+                    <button id="side-checklistTabBtn" onclick="switchFooterTab('checklist'); toggleSidebar();" style="font-size: 0.85rem; opacity: 0.9;">
+                        <span class="material-symbols-outlined">checklist</span> Daily Checklist
+                    </button>
+                    <button id="side-scheduleTabBtn" onclick="switchFooterTab('schedule'); toggleSidebar();" style="font-size: 0.85rem; opacity: 0.9;">
+                        <span class="material-symbols-outlined">calendar_month</span> Team Schedule
                     </button>
                 </div>
             </div>
@@ -1038,6 +1150,10 @@
                         <span class="material-symbols-outlined">query_stats</span>
                         Cycle Count Stats
                     </button>
+                    <button id="excessSummaryTabBtn" onclick="switchSummarySubTab('excess')">
+                        <span class="material-symbols-outlined">barcode_scanner</span>
+                        Excess Summary
+                    </button>
                 </div>
 
                 <!-- Shift Attendance Cards -->
@@ -1114,6 +1230,9 @@
                     </div>
                 </div>
 
+                <!-- Excess Scan Summary Cards -->
+                <div id="excessSummaryCards" class="hidden" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;"></div>
+
                 <div class="card">
                     <h3 style="margin-top:0">Insights</h3>
                     <p style="font-size: 0.9rem; color: var(--text-light);">
@@ -1121,6 +1240,188 @@
                         "Present" counts only members currently on site.
                         Long breaks are calculated based on current time vs initial break-out timestamp, only for the current shift.
                     </p>
+                </div>
+            </div>
+
+            <!-- Other Menu Section -->
+            <div id="moreSection" class="hidden">
+                <h2>Other Operations</h2>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div class="card" onclick="switchFooterTab('checklist')" style="display: flex; align-items: center; gap: 15px; cursor: pointer; padding: 20px;">
+                        <div style="width: 48px; height: 48px; background: #eef2ff; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                            <span class="material-symbols-outlined" style="font-size: 28px;">checklist</span>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; font-size: 1rem;">Daily Checklist</div>
+                            <div style="font-size: 0.8rem; color: var(--text-light);">Operational checks & verification.</div>
+                        </div>
+                        <span class="material-symbols-outlined" style="color: var(--border);">chevron_right</span>
+                    </div>
+                    
+                    <div class="card" onclick="switchFooterTab('schedule')" style="display: flex; align-items: center; gap: 15px; cursor: pointer; padding: 20px;">
+                        <div style="width: 48px; height: 48px; background: #f0fdf4; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--success);">
+                            <span class="material-symbols-outlined" style="font-size: 28px;">calendar_month</span>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; font-size: 1rem;">Team Schedule</div>
+                            <div style="font-size: 0.8rem; color: var(--text-light);">View rosters and manpower planning.</div>
+                        </div>
+                        <span class="material-symbols-outlined" style="color: var(--border);">chevron_right</span>
+                    </div>
+
+                    <div class="card" onclick="switchFooterTab('excess-scan')" style="display: flex; align-items: center; gap: 15px; cursor: pointer; padding: 20px;">
+                        <div style="width: 48px; height: 48px; background: #fff7ed; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #f97316;">
+                            <span class="material-symbols-outlined" style="font-size: 28px;">barcode_scanner</span>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; font-size: 1rem;">Scan Excess</div>
+                            <div style="font-size: 0.8rem; color: var(--text-light);">Log over-shipments and extra items.</div>
+                        </div>
+                        <span class="material-symbols-outlined" style="color: var(--border);">chevron_right</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Checklist Section -->
+            <div id="checklistSection" class="hidden">
+                <h2>Daily Operations Checklist</h2>
+                <div class="card" style="margin-bottom: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px;">
+                    <div>
+                        <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Checklist Shift</label>
+                        <select id="checklistShift" onchange="render()" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white; font-weight: 600;">
+                            <option value="1st">1st Shift</option>
+                            <option value="2nd">2nd Shift</option>
+                            <option value="3rd">3rd Shift</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Team Leader Authorization</label>
+                        <select id="checklistTL" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white;">
+                            <option value="" disabled selected>Select Team Leader...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card" style="padding: 0;">
+                    <div id="checklistList"></div>
+                </div>
+            </div>
+
+            <!-- Scan Excess Section -->
+            <div id="excessScanSection" class="hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h2 style="border:none; margin:0; padding:0">Scan Excess Log</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="toggleFormBtn" onclick="toggleExcessVisibility('form')" style="background: var(--primary);" title="Toggle Entry Form">
+                            <span class="material-symbols-outlined">visibility</span>
+                        </button>
+                        <button id="toggleTableBtn" onclick="toggleExcessVisibility('table')" style="background: var(--primary);" title="Toggle Detailed Log">
+                            <span class="material-symbols-outlined">visibility</span>
+                        </button>
+                        <select id="excessDcFilter" onchange="state.activeDcCode = this.value; saveData();" style="font-size: 0.75rem; padding: 4px; border: 1px solid var(--border); border-radius: 4px; width: 110px; font-weight: bold; color: var(--primary);">
+                            <option value="">ALL DCs</option>
+                            <option value="2367">DC 2367</option>
+                            <option value="7132">DC 7132</option>
+                        </select>
+                        <input type="text" id="excessGeneralSearch" placeholder="Search ID, Name, Pallet..." oninput="render()" style="font-size: 0.75rem; padding: 4px; border: 1px solid var(--border); border-radius: 4px; width: 160px;">
+                        <input type="text" id="excessBoxSearch" placeholder="Box #" oninput="render()" style="font-size: 0.75rem; padding: 4px; border: 1px solid var(--border); border-radius: 4px; width: 70px;">
+                        <input type="date" id="excessFilterDate" onchange="render()" style="font-size: 0.75rem; padding: 4px; border: 1px solid var(--border); border-radius: 4px;">
+                        <button onclick="exportExcessToExcel()" style="background: var(--success);" title="Smart Export to CSV">
+                            <span class="material-symbols-outlined">file_download</span>
+                        </button>
+                        <button onclick="smartClearExcessData()" style="background: var(--danger);" title="Smart Clear Filtered Data">
+                            <span class="material-symbols-outlined">delete_sweep</span>
+                        </button>
+                        <button onclick="state.excessScans = []; fetchInitialData(true);" style="background: var(--text-light);" title="Refresh Data">
+                            <span class="material-symbols-outlined">refresh</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Summary Dashboard -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+                    <div class="card" style="padding: 12px; text-align: center; border-top: 3px solid var(--primary);">
+                        <small style="font-size: 0.6rem; color: var(--text-light); text-transform: uppercase; font-weight: 800;">Total Scans</small>
+                        <div id="excessSummaryTotal" style="font-size: 1.2rem; font-weight: 800;">0</div>
+                    </div>
+                    <div class="card" style="padding: 12px; text-align: center; border-top: 3px solid var(--success);">
+                        <small style="font-size: 0.6rem; color: var(--text-light); text-transform: uppercase; font-weight: 800;">Unique Scanners</small>
+                        <div id="excessSummaryUsers" style="font-size: 1.2rem; font-weight: 800;">0</div>
+                    </div>
+                    <div class="card" style="padding: 12px; text-align: center; border-top: 3px solid #f97316;">
+                        <small style="font-size: 0.6rem; color: var(--text-light); text-transform: uppercase; font-weight: 800;">Last Scan</small>
+                        <div id="excessSummaryLast" style="font-size: 0.75rem; font-weight: 700; margin-top: 4px;">--:--</div>
+                    </div>
+                </div>
+
+                <div id="excessScanForm" class="card" style="margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Lead Scanner</label>
+                            <select id="excessScannerInput" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white;" onchange="localStorage.setItem('preferredScannerId', this.value)"></select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Assistant 1</label>
+                            <select id="excessAssistant1Input" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white;"></select>
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Assistant 2</label>
+                            <select id="excessAssistant2Input" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white;"></select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Barcode</label>
+                            <input type="text" id="excessBarcode" placeholder="Scan Barcode" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') document.getElementById('excessQty').focus()">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Quantity</label>
+                            <input type="number" id="excessQty" placeholder="0" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') document.getElementById('excessBox').focus()">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Box Number</label>
+                            <div style="display: flex; gap: 4px; margin-top: 4px;">
+                                <input type="text" id="excessBox" placeholder="Ex-..." style="flex: 1; box-sizing: border-box;" onkeyup="if(event.key==='Enter') document.getElementById('excessPallet').focus()">
+                                <button onclick="generateBoxNumber()" style="padding: 0 8px; background: var(--bg); color: var(--primary); border: 1px solid var(--border);" title="Generate ID"><span class="material-symbols-outlined" style="font-size: 18px;">magic_button</span></button>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Pallet Reference</label>
+                            <input type="text" id="excessPallet" placeholder="P-999" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') addExcessScan()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="padding: 0; overflow: visible;">
+                    <div class="tab-group" style="padding: 10px; margin-bottom: 0; border-bottom: 1px solid var(--border); background: #f8fafc;">
+                        <button id="excessSubLogBtn" class="active" onclick="switchExcessSubTab('log')" style="font-size: 0.75rem; padding: 6px 12px;">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">list_alt</span> Detailed Log
+                        </button>
+                        <button id="excessSubSummaryBtn" onclick="switchExcessSubTab('summary')" style="font-size: 0.75rem; padding: 6px 12px;">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">analytics</span> Scanner Summary
+                        </button>
+                    </div>
+
+                    <div id="excessLogView">
+                        <div class="table-header">
+                            <div style="flex: 1.2;">Time & Date</div>
+                            <div style="flex: 3;">Crew (Lead + Assistants)</div>
+                            <div style="flex: 1.5;">Barcode</div>
+                            <div style="flex: 0.6; text-align: center;">Qty</div>
+                            <div style="flex: 1.2;">Box # or Location</div>
+                            <div style="flex: 1;">Pallet</div>
+                            <div style="width: 70px; text-align: right; padding-right: 5px; border-right: none;">Action</div>
+                        </div>
+                        <ul id="excessScanList" style="overflow: visible;"></ul>
+                    </div>
+
+                    <div id="excessSummaryView" class="hidden">
+                        <div class="table-header" style="background: #f1f5f9;">
+                            <div style="flex: 3;">Crew (Lead + Assistants)</div>
+                            <div style="flex: 0.8; text-align: center;">Scans</div>
+                            <div style="flex: 0.8; text-align: center;">Units</div>
+                            <div style="flex: 1; text-align: center;">Unique Items</div>
+                            <div style="flex: 1.2; text-align: right; padding-right: 10px; border-right: none;">Last Active</div>
+                        </div>
+                        <ul id="excessScannerSummaryList"></ul>
+                    </div>
                 </div>
             </div>
 
@@ -1219,7 +1520,7 @@
                             <div style="flex: 0.8 1 0%; text-align: right; padding-right: 5px;">Req. HC</div>
                             <div style="flex: 0.6 1 0%; text-align: right;">Actions</div>
                         </div>
-                        <ul id="scheduleList" style="padding-bottom: 0;"></ul>
+                        <ul id="scheduleList"></ul>
                     </div>
                     <div id="scheduleVisualWrapper" class="hidden sched-visual-grid" style="padding: 15px;"></div>
                     <div id="scheduleStorageWrapper" class="hidden">
@@ -1240,8 +1541,6 @@
                 <ul id="globalSearchResults"></ul>
             </div>
         </div>
-
-        <footer class="container dashboard-footer"></footer>
 
         <!-- Scan Action Selection Modal -->
         <div id="scanActionModal" class="modal-overlay hidden" onclick="closeScanActionModal()">
@@ -1401,9 +1700,12 @@
                 <span class="material-symbols-outlined">analytics</span>
                 <span>Reports</span>
             </button>
-            <button class="footer-nav-item" onclick="switchFooterTab('schedule')" data-tab="schedule">
-                <span class="material-symbols-outlined">calendar_month</span>
-                <span>Schedule</span>
+            <button class="footer-nav-item" onclick="switchFooterTab('more')" data-tab="more">
+                <div class="badge-container">
+                    <span class="material-symbols-outlined">more_horiz</span>
+                    <span id="moreBadge" class="badge hidden"></span>
+                </div>
+                <span>More</span>
             </button>
         </nav>
 
@@ -1431,6 +1733,7 @@
                             <option value="Team leader">Team leader</option>
                             <option value="Zone Leader">Zone Leader</option>
                             <option value="Back up">Back up</option>
+                            <option value="Scanner">Scanner</option>
                         </select>
                     </div>
                     <button id="saveMemberBtn" onclick="saveMember()" style="width: 100%; margin-top: 10px; padding: 12px;">
@@ -1488,7 +1791,11 @@
             activeAttendanceSubTab: 'checkin',
             activeProductivitySubTab: 'active',
             activeSummarySubTab: 'shift',
-            scheduleView: 'table'
+            scheduleView: 'table',
+            excessFormVisible: true,
+            excessTableVisible: true,
+            activeExcessSubTab: 'log',
+            activeDcCode: ''
         };
 
         let state = {
@@ -1497,16 +1804,28 @@
             historyFilterToDate: '',
             scheduleFilterFromDate: '',
             scheduleFilterToDate: '',
+            checklist: [
+                { id: 1, task: "Verify Shift 1 Attendance Fulfillment", completed: false, category: "Attendance" },
+                { id: 2, task: "Review Active Productivity Sessions", completed: false, category: "Productivity" },
+                { id: 3, task: "Check for Long Break Alerts (>40m)", completed: false, category: "Attendance" },
+                { id: 4, task: "Ensure All Reserved Bins are Processed", completed: false, category: "Productivity" },
+                { id: 5, task: "Export Daily Attendance Report", completed: false, category: "Admin" },
+                { id: 6, task: "Clean Productivity History (Optional)", completed: false, category: "Admin" }
+            ],
             locations: [],
+            excessScans: [],
+            editingExcessId: null,
             tasks: [],
             schedules: [],
+            checklistCompletions: [],
+            isLoading: true,
             ...uiSettings
         };
 
         let activeProductivitySubTab = state.activeProductivitySubTab || 'active';
         let activeSummarySubTab = state.activeSummarySubTab || 'shift';
         // Runtime display limits for pagination/load more
-        let displayLimits = { checkin: 10, history: 10, register: 10, prodHistory: 10 };
+        let displayLimits = { checkin: 10, history: 10, register: 10, prodHistory: 10, excess: 10 };
         let notifiedAlerts = new Set();
 
         function highlightMatch(text, query) {
@@ -1606,32 +1925,43 @@
             const summarySection = document.getElementById('summarySection');
             const reportsSection = document.getElementById('reportsSection');
             const scheduleSection = document.getElementById('scheduleSection');
+            const checklistSection = document.getElementById('checklistSection');
+            const moreSection = document.getElementById('moreSection');
+            const excessScanSection = document.getElementById('excessScanSection');
 
             if(homeView) homeView.classList.toggle('hidden', tab !== 'home');
             if(summarySection) summarySection.classList.toggle('hidden', tab !== 'summary');
             if(reportsSection) reportsSection.classList.toggle('hidden', tab !== 'reports');
             if(scheduleSection) scheduleSection.classList.toggle('hidden', tab !== 'schedule');
+            if(checklistSection) checklistSection.classList.toggle('hidden', tab !== 'checklist');
+            if(excessScanSection) excessScanSection.classList.toggle('hidden', tab !== 'excess-scan');
+            if(moreSection) moreSection.classList.toggle('hidden', tab !== 'more');
 
             // Update active state in footer
             document.querySelectorAll('.footer-nav-item').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.tab === tab);
+                const isMoreChild = tab === 'checklist' || tab === 'schedule' || tab === 'excess-scan';
+                const targetTab = isMoreChild ? 'more' : tab;
+                btn.classList.toggle('active', btn.dataset.tab === targetTab);
             });
 
             // Update sidebar active state
-            document.querySelectorAll('.side-nav-item').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.tab === tab);
-            });
+            if (document.getElementById('side-checklistTabBtn')) 
+                document.getElementById('side-checklistTabBtn').classList.toggle('active', tab === 'checklist');
+            if (document.getElementById('side-scheduleTabBtn')) 
+                document.getElementById('side-scheduleTabBtn').classList.toggle('active', tab === 'schedule');
+            if (document.getElementById('side-moreTabBtn')) 
+                document.getElementById('side-moreTabBtn').classList.toggle('active', tab === 'more');
 
             // Sync sidebar sub-menu visibility for all tabs
             const sideHome = document.getElementById('side-homeSubMenu');
             const sideSum = document.getElementById('side-summaryMenu');
             const sideRep = document.getElementById('side-reportsMenu');
-            const sideSch = document.getElementById('side-scheduleMenu');
+            const sideMore = document.getElementById('side-moreMenu');
 
             if (sideHome) sideHome.classList.toggle('hidden', tab !== 'home');
             if (sideSum) sideSum.classList.toggle('hidden', tab !== 'summary');
             if (sideRep) sideRep.classList.toggle('hidden', tab !== 'reports');
-            if (sideSch) sideSch.classList.toggle('hidden', tab !== 'schedule');
+            if (sideMore) sideMore.classList.toggle('hidden', tab !== 'more' && tab !== 'checklist' && tab !== 'schedule' && tab !== 'excess-scan');
 
             // Sync sidebar attendance views sub-menu visibility
             const sideAttSub = document.getElementById('side-attendanceSubMenu');
@@ -1654,7 +1984,10 @@
                 home: 'Team Dashboard', 
                 summary: 'Dashboard', 
                 reports: 'Reports', 
-                schedule: 'Schedule' 
+                checklist: 'Daily Checklist',
+                schedule: 'Schedule',
+                more: 'Other Operations',
+                'excess-scan': 'Scan Excess Log'
             };
             const headerTitle = document.querySelector('header h1');
             if(headerTitle) headerTitle.innerText = titles[tab];
@@ -1726,8 +2059,11 @@
             document.getElementById('historySubTabBtn').classList.toggle('active', tab === 'history');
             document.getElementById('registerSubTabBtn').classList.toggle('active', tab === 'register');
 
-            // Reset display limits when switching sub-tabs for a fresh view
-            displayLimits = { checkin: 10, history: 10, register: 10 };
+            // Reset display limits for attendance sub-tabs individually to preserve other limits
+            displayLimits.checkin = 10;
+            displayLimits.history = 10;
+            displayLimits.register = 10;
+
             saveData();
 
             // Sync Sidebar Tabs
@@ -1762,26 +2098,48 @@
 
         // Database Sync Logic
         async function fetchInitialData(showLoader = false) {
-            if (!supabaseClient) return;
-            if (showLoader) toggleLoader(true);
+            if (!supabaseClient) {
+                state.isLoading = false;
+                render();
+                return;
+            }
+            if (showLoader) {
+                state.isLoading = true;
+                render();
+            }
             
             try {
                 const { data: members } = await supabaseClient.from('members').select('*');
-                const { data: tasks } = await supabaseClient.from('tasks').select('*');
-                const { data: schedules } = await supabaseClient.from('schedules').select('*');
+                const { data: tasks } = await supabaseClient.from('tasks').select('*').order('starttime', { ascending: false }).limit(500);
+                const { data: schedules } = await supabaseClient.from('schedules').select('*').order('date', { ascending: false }).limit(100);
                 const { data: locations } = await supabaseClient.from('locations').select('*');
+                
+                const { data: checklistLogs } = await supabaseClient.from('checklist_logs').select('*').order('date', { ascending: false }).limit(100);
+                state.checklistCompletions = checklistLogs || [];
+                const { data: excess } = await supabaseClient.from('excess_scans').select('*').order('timestamp', { ascending: false }).limit(1000);
                 
                 state.members = members || [];
                 state.tasks = tasks || [];
                 state.schedules = schedules || [];
                 state.locations = locations || [];
+                state.excessScans = excess || [];
                 render();
             } catch (err) {
                 console.error("Fetch error:", err);
                 if (showLoader) showToast("Failed to refresh data", "error");
             } finally {
+                state.isLoading = false;
+                render();
                 if (showLoader) toggleLoader(false);
-            }
+            } 
+        }
+
+        let renderTimeout;
+        function debouncedRender() {
+            if (renderTimeout) clearTimeout(renderTimeout);
+            renderTimeout = setTimeout(() => {
+                render();
+            }, 100); // 100ms debounce to prevent UI stutter
         }
 
         function initRealtime() {
@@ -1790,43 +2148,72 @@
             supabaseClient.channel('db-changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, payload => {
                     if (payload.eventType === 'DELETE') {
-                        state.members = state.members.filter(m => m.userid !== payload.old.userid);
+                        state.members = state.members.filter(m => 
+                            (payload.old.id && m.id === payload.old.id) || 
+                            (payload.old.userid && String(m.userid) === String(payload.old.userid))
+                        );
                     } else {
-                        const idx = state.members.findIndex(m => m.userid === payload.new.userid);
-                        if (idx > -1) state.members[idx] = payload.new;
+                        const idx = state.members.findIndex(m => 
+                            (payload.new.id && m.id === payload.new.id) || 
+                            (payload.new.userid && String(m.userid) === String(payload.new.userid))
+                        );
+                        if (idx > -1) state.members[idx] = { ...state.members[idx], ...payload.new };
                         else state.members.push(payload.new);
                     }
-                    render();
+                    debouncedRender();
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
                     if (payload.eventType === 'DELETE') {
                         state.tasks = state.tasks.filter(t => t.id !== payload.old.id);
                     } else {
-                        const idx = state.tasks.findIndex(t => t.id === payload.new.id);
-                        if (idx > -1) state.tasks[idx] = payload.new;
+                        const idx = state.tasks.findIndex(t => String(t.id) === String(payload.new.id));
+                        if (idx > -1) state.tasks[idx] = { ...state.tasks[idx], ...payload.new };
                         else state.tasks.push(payload.new);
                     }
-                    render();
+                    debouncedRender();
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, payload => {
                     if (payload.eventType === 'DELETE') {
                         state.schedules = state.schedules.filter(s => s.id !== payload.old.id);
                     } else {
-                        const idx = state.schedules.findIndex(s => s.id === payload.new.id);
-                        if (idx > -1) state.schedules[idx] = payload.new;
+                        const idx = state.schedules.findIndex(s => String(s.id) === String(payload.new.id));
+                        if (idx > -1) state.schedules[idx] = { ...state.schedules[idx], ...payload.new };
                         else state.schedules.push(payload.new);
                     }
-                    render();
+                    debouncedRender();
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'locations' }, payload => {
                     if (payload.eventType === 'DELETE') {
                         state.locations = state.locations.filter(l => l.id !== payload.old.id);
                     } else {
-                        const idx = state.locations.findIndex(l => l.id === payload.new.id);
-                        if (idx > -1) state.locations[idx] = payload.new;
+                        const idx = state.locations.findIndex(l => String(l.id) === String(payload.new.id));
+                        if (idx > -1) state.locations[idx] = { ...state.locations[idx], ...payload.new };
                         else state.locations.push(payload.new);
                     }
-                    render();
+                    debouncedRender();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist_logs' }, payload => {
+                    if (payload.eventType === 'DELETE') {
+                        state.checklistCompletions = state.checklistCompletions.filter(c => c.id !== payload.old.id);
+                    } else {
+                        const idx = state.checklistCompletions.findIndex(c => c.id === payload.new.id);
+                        if (idx > -1) state.checklistCompletions[idx] = { ...state.checklistCompletions[idx], ...payload.new };
+                        else state.checklistCompletions.push(payload.new);
+                    }
+                    debouncedRender();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'excess_scans' }, payload => {
+                    if (payload.eventType === 'DELETE') {
+                        state.excessScans = state.excessScans.filter(s => s.id !== payload.old.id);
+                    } else {
+                        const idx = state.excessScans.findIndex(s => String(s.id) === String(payload.new.id));
+                        if (idx > -1) state.excessScans[idx] = { ...state.excessScans[idx], ...payload.new };
+                        else {
+                            state.excessScans.unshift(payload.new);
+                            if (state.excessScans.length > 1000) state.excessScans.pop();
+                        }
+                    }
+                    debouncedRender();
                 })
                 .subscribe();
         }
@@ -1838,7 +2225,8 @@
                 activeHomeTab: state.activeHomeTab,
                 activeAttendanceSubTab: state.activeAttendanceSubTab,
                 activeProductivitySubTab: state.activeProductivitySubTab,
-                activeSummarySubTab: state.activeSummarySubTab
+                activeSummarySubTab: state.activeSummarySubTab,
+                activeDcCode: state.activeDcCode
             };
             localStorage.setItem('trackerUI', JSON.stringify(uiState));
             render();
@@ -1851,6 +2239,12 @@
                 state.historyFilterToDate = value;
             }
             saveData(); // Re-render with new filter
+        }
+
+        function toggleExcessVisibility(type) {
+            if (type === 'form') state.excessFormVisible = !state.excessFormVisible;
+            if (type === 'table') state.excessTableVisible = !state.excessTableVisible;
+            saveData();
         }
 
         function clearHistoryDateFilter() {
@@ -1934,6 +2328,114 @@
             render();
         }
 
+        async function addExcessScan() {
+            const scannerId = document.getElementById('excessScannerInput').value;
+            const asst1Id = document.getElementById('excessAssistant1Input').value;
+            const asst2Id = document.getElementById('excessAssistant2Input').value;
+            const barcode = document.getElementById('excessBarcode').value;
+            const qty = document.getElementById('excessQty').value;
+            const box = document.getElementById('excessBox').value;
+            const pallet = document.getElementById('excessPallet').value;
+
+            // Validation to avoid accidental barcode input in pallet field (detects long numeric strings)
+            if (pallet.length > 10 && /^\d+$/.test(pallet)) {
+                showToast("Pallet reference looks like a barcode. Please check your input.", "error");
+                return;
+            }
+
+            if (!scannerId || !barcode || !qty || isNaN(parseInt(qty)) || parseInt(qty) <= 0) {
+                if (!scannerId) showToast("Please select a Lead Scanner", "error");
+                else if (!barcode) showToast("Barcode is required", "error");
+                else if (!qty || isNaN(parseInt(qty)) || parseInt(qty) <= 0) showToast("Valid Quantity is required", "error");
+                return;
+            }
+
+            const scanner = state.members.find(m => m.userid === scannerId);
+            const asst1 = state.members.find(m => m.userid === asst1Id);
+            const asst2 = state.members.find(m => m.userid === asst2Id);
+            
+            const payload = {
+                scannerName: scanner.name,
+                scannerId: scannerId,
+                assistant1Name: asst1 ? asst1.name : '--',
+                assistant1Id: asst1Id || '--',
+                assistant2Name: asst2 ? asst2.name : '--',
+                assistant2Id: asst2Id || '--',
+                barcode: barcode,
+                qty: parseInt(qty),
+                box: box || '--',
+                pallet: pallet || '--',
+                dcCode: state.activeDcCode || '--',
+                timestamp: new Date().toISOString()
+            };
+
+            toggleLoader(true);
+
+            let result;
+            if (state.editingExcessId) {
+                result = await supabaseClient.from('excess_scans').update(payload).eq('id', state.editingExcessId);
+            } else {
+                result = await supabaseClient.from('excess_scans').insert([payload]);
+            }
+
+            toggleLoader(false);
+            if (result.error) return showToast(result.error.message, "error");
+            state.editingExcessId = null;
+
+            showToast("Excess entry saved!", "success");
+            document.getElementById('excessBarcode').value = '';
+            document.getElementById('excessQty').value = '';
+            document.getElementById('excessBox').value = '';
+            document.getElementById('excessPallet').value = '';
+            document.getElementById('excessBarcode').focus();
+            render();
+        }
+
+        function generateBoxNumber() {
+            const now = new Date();
+            const d = String(now.getDate()).padStart(2, '0');
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const y = String(now.getFullYear()).slice(-2);
+            const prefix = `Ex-${d}${m}${y}-`;
+            
+    
+            const todayScans = state.excessScans.filter(s => s.box && s.box.toString().startsWith(prefix));
+            let nextSeq = 1;
+            if (todayScans.length > 0) {
+                
+                const sequences = todayScans.map(s => parseInt(s.box.toString().split('-')[2]) || 0).filter(n => !isNaN(n));
+                if (sequences.length > 0) nextSeq = Math.max(...sequences) + 1;
+            }
+            
+            const finalBox = prefix + String(nextSeq).padStart(4, '0');
+            document.getElementById('excessBox').value = finalBox;
+            document.getElementById('excessPallet').focus();
+        }
+
+        function editExcessScan(id) {
+            const scan = state.excessScans.find(s => s.id === id);
+            if (!scan) return;
+            state.editingExcessId = id;
+            document.getElementById('excessScannerInput').value = scan.scannerId;
+            document.getElementById('excessAssistant1Input').value = scan.assistant1Id === '--' ? '' : scan.assistant1Id;
+            document.getElementById('excessAssistant2Input').value = scan.assistant2Id === '--' ? '' : scan.assistant2Id;
+            document.getElementById('excessBarcode').value = scan.barcode;
+            document.getElementById('excessQty').value = scan.qty;
+            document.getElementById('excessBox').value = scan.box === '--' ? '' : scan.box;
+            document.getElementById('excessPallet').value = scan.pallet === '--' ? '' : scan.pallet;
+            document.getElementById('excessBarcode').focus();
+            showToast("Editing entry...", "info");
+        }
+
+        async function deleteExcessScan(id) {
+            if (!confirm("Delete this log entry?")) return;
+            toggleLoader(true);
+            const { error } = await supabaseClient.from('excess_scans').delete().eq('id', id);
+            toggleLoader(false);
+            if (error) showToast(error.message, "error");
+            else showToast("Entry deleted", "info");
+        }
+
         function exportMembersToExcel() {
             if (state.members.length === 0) return showToast("No members found!", "error");
             toggleLoader(true);
@@ -1951,6 +2453,114 @@
                     toggleLoader(false);
                 }
             }, 100);
+        }
+
+        async function exportExcessToExcel() {
+            const dateFilter = document.getElementById('excessFilterDate').value;
+            const boxFilter = document.getElementById('excessBoxSearch').value.toLowerCase();
+            const genSearch = (document.getElementById('excessGeneralSearch')?.value || '').toLowerCase();
+            
+            let filteredData = [...state.excessScans];
+
+            if (state.activeDcCode) filteredData = filteredData.filter(s => s.dcCode === state.activeDcCode);
+            if (dateFilter) {
+                // If date is set, check if user wants a full export for that day vs current filtered view
+                const isFiltered = boxFilter || genSearch;
+                const exportAllForDate = isFiltered ? confirm(`Export ALL records for ${dateFilter}? (Select 'Cancel' to export only your current filtered view)`) : true;
+                
+                const filterISO = toLocalISO(dateFilter);
+                filteredData = filteredData.filter(s => toLocalISO(s.timestamp) === filterISO);
+                
+                if (!exportAllForDate) {
+                    if (boxFilter) filteredData = filteredData.filter(s => s.box && s.box.toString().toLowerCase().includes(boxFilter));
+                    if (genSearch) filteredData = filteredData.filter(s => 
+                        (s.barcode && s.barcode.toLowerCase().includes(genSearch)) || 
+                        (s.scannerName && s.scannerName.toLowerCase().includes(genSearch)) || 
+                        (s.scannerId && s.scannerId.toLowerCase().includes(genSearch)) || 
+                        (s.pallet && s.pallet.toLowerCase().includes(genSearch)) || 
+                        (s.box && s.box.toString().toLowerCase().includes(genSearch)));
+                }
+            } else {
+                if (boxFilter) filteredData = filteredData.filter(s => s.box && s.box.toString().toLowerCase().includes(boxFilter));
+                if (genSearch) filteredData = filteredData.filter(s => 
+                    (s.barcode && s.barcode.toLowerCase().includes(genSearch)) || 
+                    (s.scannerName && s.scannerName.toLowerCase().includes(genSearch)) || 
+                    (s.scannerId && s.scannerId.toLowerCase().includes(genSearch)) || 
+                    (s.pallet && s.pallet.toLowerCase().includes(genSearch)) || 
+                    (s.box && s.box.toString().toLowerCase().includes(genSearch)));
+            }
+
+            if (filteredData.length === 0) return showToast("No records found matching these filters!", "error");
+
+            toggleLoader(true);
+            setTimeout(() => {
+                try {
+                    
+                    const headers = ["Timestamp", "Lead Scanner", "Lead ID", "Assistant 1", "Asst 1 ID", "Assistant 2", "Asst 2 ID", "Barcode", "Qty", "Box Number", "Pallet Ref", "DC Code"];
+                    const csvRows = [headers.join(",")];
+                    filteredData.forEach(s => {
+                        const row = [
+                            new Date(s.timestamp).toLocaleString(),
+                            s.scannerName,
+                            s.scannerId || '--',
+                            s.assistant1Name || '--',
+                            s.assistant1Id || '--',
+                            s.assistant2Name || '--',
+                            s.assistant2Id || '--',
+                            s.barcode,
+                            s.qty,
+                            s.box,
+                            s.pallet,
+                            s.dcCode || '--'
+                        ];
+                        csvRows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
+                    });
+                    downloadFile(csvRows.join("\n"), `Excess_Smart_Export_${new Date().toISOString().slice(0,10)}.csv`);
+                    showToast(`Exported ${filteredData.length} records successfully.`, "success");
+                } finally {
+                    toggleLoader(false);
+                }
+            }, 100);
+        }
+
+        async function smartClearExcessData() {
+            const dateFilter = document.getElementById('excessFilterDate').value;
+            const boxFilter = document.getElementById('excessBoxSearch').value.toLowerCase();
+            const genSearch = (document.getElementById('excessGeneralSearch')?.value || '').toLowerCase();
+            
+            let filteredData = [...state.excessScans];
+
+            if (state.activeDcCode) filteredData = filteredData.filter(s => s.dcCode === state.activeDcCode);
+            if (dateFilter) {
+                const filterISO = toLocalISO(dateFilter);
+                filteredData = filteredData.filter(s => toLocalISO(s.timestamp) === filterISO);
+            }
+            
+            if (boxFilter) filteredData = filteredData.filter(s => s.box && s.box.toString().toLowerCase().includes(boxFilter));
+            if (genSearch) filteredData = filteredData.filter(s => 
+                (s.barcode && s.barcode.toLowerCase().includes(genSearch)) || 
+                (s.scannerName && s.scannerName.toLowerCase().includes(genSearch)) || 
+                (s.scannerId && s.scannerId.toLowerCase().includes(genSearch)) || 
+                (s.pallet && s.pallet.toLowerCase().includes(genSearch)) || 
+                (s.box && s.box.toString().toLowerCase().includes(genSearch)));
+
+            if (filteredData.length === 0) return showToast("No records found matching current filters to clear.", "error");
+            if (!confirm(`Are you sure you want to PERMANENTLY DELETE ${filteredData.length} filtered records from the database? This action cannot be undone.`)) return;
+
+            toggleLoader(true);
+            try {
+                const idsToDelete = filteredData.map(s => s.id);
+                // Batch delete from Supabase using .in()
+                const { error } = await supabaseClient.from('excess_scans').delete().in('id', idsToDelete);
+                if (error) throw error;
+                
+                showToast(`Successfully cleared ${filteredData.length} records.`, "success");
+                // The realtime subscription handles the local state update automatically.
+            } catch (err) {
+                showToast("Clear failed: " + err.message, "error");
+            } finally {
+                toggleLoader(false);
+            }
         }
 
         async function handleMemberUpload(event) {
@@ -2603,7 +3213,7 @@
             if (hour >= 6 && hour < 14) currentShift = '1st';
             else if (hour >= 14 && hour < 22) currentShift = '2nd';
 
-            const list = state.members.filter(m => {
+            const list = state.members.map((m, i) => ({ ...m, index: i })).filter(m => {
                 if (m.status !== 'On Break') return false;
                 const isLong = getBreakDuration(m.breakout) > 40;
                 // If viewing long breaks, also filter by the current shift
@@ -2622,9 +3232,15 @@
                     <div class="detail-row" style="flex-direction:column; align-items:flex-start; gap:4px; padding: 12px 0;">
                         <div style="display:flex; justify-content:space-between; width:100%; align-items:center">
                             <span style="font-weight:700; font-size:1.05rem">${m.name}</span>
-                            <span style="color:${getBreakDuration(m.breakout) > 40 ? 'var(--danger)' : '#854d0e'}; font-weight:800; font-size:1.1rem; background:${getBreakDuration(m.breakout) > 40 ? '#fee2e2' : '#fef9c3'}; padding: 2px 10px; border-radius:8px">
-                                ${getBreakDuration(m.breakout)}m
-                            </span>
+                            <div style="display:flex; gap:8px; align-items:center">
+                                <span style="color:${getBreakDuration(m.breakout) > 40 ? 'var(--danger)' : '#854d0e'}; font-weight:800; font-size:1.1rem; background:${getBreakDuration(m.breakout) > 40 ? '#fee2e2' : '#fef9c3'}; padding: 2px 10px; border-radius:8px">
+                                    ${getBreakDuration(m.breakout)}m
+                                </span>
+                                <div style="display:flex; gap:4px">
+                                    <button class="btn-action-sm" onclick="updateStatus(${m.index}, 'Present'); closeModal();" title="Break In" style="background:#dcfce7; color:#166534; border: 1px solid var(--border);"><span class="material-symbols-outlined" style="font-size:16px">work</span></button>
+                                    <button class="btn-action-sm" onclick="updateStatus(${m.index}, 'Away'); closeModal();" title="Time Out" style="background:#fee2e2; color:#991b1b; border: 1px solid var(--border);"><span class="material-symbols-outlined" style="font-size:16px">logout</span></button>
+                                </div>
+                            </div>
                         </div>
                         <div style="font-size:0.75rem; color:var(--text-light); font-weight:500">${m.role} • ID: ${m.userid} • Out: ${m.breakout}</div>
                     </div>
@@ -2658,7 +3274,8 @@
             const operationalISO = getOperationalISO(now);
             const counterRoles = ['Direct Counter', 'Back up'];
             
-            let list = state.members.filter(m => 
+            // Map index to state.members to ensure actions target the correct user
+            let list = state.members.map((m, i) => ({ ...m, index: i })).filter(m => 
                 m.shift === shift && 
                 toLocalISO(m.date) === operationalISO && 
                 counterRoles.includes(m.role)
@@ -2679,7 +3296,18 @@
                     <div class="detail-row" style="flex-direction:column; align-items:flex-start; gap:4px; padding: 12px 0;">
                         <div style="display:flex; justify-content:space-between; width:100%; align-items:center">
                             <span style="font-weight:700; font-size:1.05rem">${m.name}</span>
-                            <span class="status-badge ${m.status === 'Present' ? 'present' : (m.status === 'On Break' ? 'on-break' : 'away')}">${m.status}</span>
+                            <div style="display:flex; gap:8px; align-items:center">
+                                <span class="status-badge ${m.status === 'Present' ? 'present' : (m.status === 'On Break' ? 'on-break' : 'away')}">${m.status}</span>
+                                <div style="display:flex; gap:4px">
+                                    ${m.status === 'Present' ? `
+                                        <button class="btn-action-sm" onclick="updateStatus(${m.index}, 'On Break'); closeModal();" title="Break Out" style="background:#fef9c3; color:#854d0e; border: 1px solid var(--border);"><span class="material-symbols-outlined" style="font-size:16px">coffee</span></button>
+                                        <button class="btn-action-sm" onclick="updateStatus(${m.index}, 'Away'); closeModal();" title="Time Out" style="background:#fee2e2; color:#991b1b; border: 1px solid var(--border);"><span class="material-symbols-outlined" style="font-size:16px">logout</span></button>
+                                    ` : (m.status === 'On Break' ? `
+                                        <button class="btn-action-sm" onclick="updateStatus(${m.index}, 'Present'); closeModal();" title="Break In" style="background:#dcfce7; color:#166534; border: 1px solid var(--border);"><span class="material-symbols-outlined" style="font-size:16px">work</span></button>
+                                        <button class="btn-action-sm" onclick="updateStatus(${m.index}, 'Away'); closeModal();" title="Time Out" style="background:#fee2e2; color:#991b1b; border: 1px solid var(--border);"><span class="material-symbols-outlined" style="font-size:16px">logout</span></button>
+                                    ` : '')}
+                                </div>
+                            </div>
                         </div>
                         <div style="font-size:0.75rem; color:var(--text-light); font-weight:500">${m.role} • ID: ${m.userid}</div>
                         <div style="font-size:0.8rem; color:var(--text-light)">In: ${m.timein || '--'} | Out: ${m.timeout || '--'}</div>
@@ -2707,8 +3335,15 @@
             if (type === 'active') {
                 titleText = "Active Counters";
                 list = allCounters.filter(m => activeCounterIds.has(m.userid)).map(m => {
-                    const task = activeTasks.find(t => t.userid === m.userid);
-                    return { ...m, subText: `${task.location} (${task.bintype || 'Pick'}) • Running: ${calculateDuration(task.starttime)}` };
+                    const taskIdx = state.tasks.findIndex(t => t.userid === m.userid && !t.completed);
+                    const task = state.tasks[taskIdx];
+                    return { 
+                        ...m, 
+                        taskIdx,
+                        subText: `${task.location} (${task.bintype || 'Pick'}) • Running: ${calculateDuration(task.starttime)}`,
+                        hasActiveTask: true,
+                        canStartTask: false
+                    };
                 });
             } else if (type === 'inactive') {
                 titleText = "Inactive Counters";
@@ -2720,7 +3355,7 @@
                     if (lastTask) {
                         subText += ` • Last: ${calculateDuration(lastTask.starttime, lastTask.endtime)} (${new Date(lastTask.endtime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})})`;
                     }
-                    return { ...m, subText };
+                    return { ...m, subText, hasActiveTask: false, canStartTask: m.status !== 'On Break' };
                 });
             } else if (type === 'long') {
                 titleText = "Long Cycle Sessions (> 1Hr)";
@@ -2730,8 +3365,15 @@
                     const diff = (now - new Date(t.starttime)) / 3600000;
                     return diff > 1;
                 }).map(m => {
-                    const task = activeTasks.find(t => t.userid === m.userid);
-                    return { ...m, subText: `${task.location} (${task.bintype}) • Session: ${calculateDuration(task.starttime)}`, isAlert: true };
+                    const taskIdx = state.tasks.findIndex(t => t.userid === m.userid && !t.completed);
+                    const task = state.tasks[taskIdx];
+                    return { 
+                        ...m, 
+                        taskIdx,
+                        subText: `${task.location} (${task.bintype}) • Session: ${calculateDuration(task.starttime)}`, 
+                        isAlert: true,
+                        hasActiveTask: true
+                    };
                 });
             } else if (type === 'break') {
                 titleText = "Designated Counters on Break";
@@ -2749,12 +3391,46 @@
                     <div class="detail-row" style="flex-direction:column; align-items:flex-start; gap:4px; padding: 12px 0;">
                         <div style="display:flex; justify-content:space-between; width:100%; align-items:center">
                             <span style="font-weight:700; font-size:1.05rem">${m.name}</span>
-                            ${m.isAlert ? `<span style="color:var(--danger); font-weight:800; font-size:0.8rem; background:#fee2e2; padding: 2px 8px; border-radius:6px">OVER 1HR</span>` : ''}
+                            <div style="display:flex; gap:8px; align-items:center">
+                                ${m.isAlert ? `<span style="color:var(--danger); font-weight:800; font-size:0.8rem; background:#fee2e2; padding: 2px 8px; border-radius:6px">OVER 1HR</span>` : ''}
+                                <div style="display:flex; gap:4px">
+                                    ${m.hasActiveTask ? `
+                                        <button class="btn-action-sm" onclick="closeModal(); stopTimer(${m.taskIdx});" title="End Session" style="background:#fee2e2; color:#991b1b; border: 1px solid var(--border);"><span class="material-symbols-outlined" style="font-size:16px">stop_circle</span></button>
+                                    ` : (m.canStartTask ? `
+                                        <button class="btn-action-sm" onclick="closeModal(); document.getElementById('modalTaskInput').value='${m.userid}'; openSessionModal();" title="Start Session" style="background:#dcfce7; color:#166534; border: 1px solid var(--border);"><span class="material-symbols-outlined" style="font-size:16px">play_circle</span></button>
+                                    ` : '')}
+                                </div>
+                            </div>
                         </div>
                         <div style="font-size:0.75rem; color:var(--text-light); font-weight:500">${m.role} • ID: ${m.userid}</div>
                         <div style="font-size:0.85rem; color:var(--primary); font-weight:600; margin-top:2px">${m.subText}</div>
                     </div>
                 `).join('') + '</div>';
+            }
+            document.getElementById('detailsModal').classList.remove('hidden');
+        }
+
+        function showScannerScanList(scannerId) {
+            const filtered = state.excessScans.filter(s => (s.scannerId || 'Unknown') === scannerId);
+            const scannerName = filtered.length > 0 ? (filtered[0].scannerName || scannerId) : scannerId;
+            
+            const titleEl = document.querySelector('#detailsModal h3');
+            if (titleEl) titleEl.innerText = `Excess Log: ${scannerName}`;
+
+            const body = document.getElementById('modalBody');
+            if (filtered.length === 0) {
+                body.innerHTML = '<div class="empty-state">No records found.</div>';
+            } else {
+                body.innerHTML = '<div style="max-height: 380px; overflow-y: auto; padding-right:5px">' + filtered.slice(0, 50).map(s => `
+                    <div class="detail-row" style="flex-direction:column; align-items:flex-start; gap:4px; padding: 12px 0;">
+                        <div style="display:flex; justify-content:space-between; width:100%; align-items:center">
+                            <span style="font-weight:700; font-size:1.05rem">${s.barcode}</span>
+                            <span style="color:var(--primary); font-weight:800; font-size:1rem; background:var(--bg); padding: 2px 8px; border-radius:6px">Qty: ${s.qty}</span>
+                        </div>
+                        <div style="font-size:0.75rem; color:var(--text-light); font-weight:500">Box: ${s.box} • Pallet: ${s.pallet}</div>
+                        <div style="font-size:0.75rem; color:var(--text-light)">${new Date(s.timestamp).toLocaleString()}</div>
+                    </div>
+                `).join('') + (filtered.length > 50 ? '<div class="empty-state">Showing last 50 scans. Use log for full history.</div>' : '') + '</div>';
             }
             document.getElementById('detailsModal').classList.remove('hidden');
         }
@@ -2778,6 +3454,11 @@
                 await supabaseClient.from('tasks').delete().eq('id', id);
                 showToast("Record deleted.", "info");
             }
+        }
+
+        function switchExcessSubTab(tab) {
+            state.activeExcessSubTab = tab;
+            saveData();
         }
 
         async function clearProductivityHistory() {
@@ -2991,6 +3672,17 @@
 
         // Render UI
         function render() {
+            // Excess Scan Visibility Toggles
+            const excessForm = document.getElementById('excessScanForm');
+            const excessTableCard = document.getElementById('excessScanList')?.closest('.card');
+            const formBtn = document.getElementById('toggleFormBtn');
+            const tableBtn = document.getElementById('toggleTableBtn');
+
+            if (excessForm) excessForm.classList.toggle('hidden', !state.excessFormVisible);
+            if (excessTableCard) excessTableCard.classList.toggle('hidden', !state.excessTableVisible);
+            if (formBtn) formBtn.innerHTML = `<span class="material-symbols-outlined">${state.excessFormVisible ? 'visibility' : 'visibility_off'}</span>`;
+            if (tableBtn) tableBtn.innerHTML = `<span class="material-symbols-outlined">${state.excessTableVisible ? 'visibility' : 'visibility_off'}</span>`;
+
             const attendanceList = document.getElementById('attendanceList');
             const historyList = document.getElementById('historyList');
             const registerList = document.getElementById('registerList');
@@ -3107,13 +3799,200 @@
             // Update Summary Tab Visibility
             const shiftSumCards = document.getElementById('shiftSummaryCards');
             const cycleSumCards = document.getElementById('cycleSummaryCards');
+            const excessSumCards = document.getElementById('excessSummaryCards');
             const shiftBtn = document.getElementById('shiftSummaryTabBtn');
             const cycleBtn = document.getElementById('cycleSummaryTabBtn');
+            const excessBtn = document.getElementById('excessSummaryTabBtn');
 
             if (shiftSumCards) shiftSumCards.classList.toggle('hidden', activeSummarySubTab !== 'shift');
             if (cycleSumCards) cycleSumCards.classList.toggle('hidden', activeSummarySubTab !== 'cycle');
+            if (excessSumCards) excessSumCards.classList.toggle('hidden', activeSummarySubTab !== 'excess');
             if (shiftBtn) shiftBtn.classList.toggle('active', activeSummarySubTab === 'shift');
             if (cycleBtn) cycleBtn.classList.toggle('active', activeSummarySubTab === 'cycle');
+            if (excessBtn) excessBtn.classList.toggle('active', activeSummarySubTab === 'excess');
+
+            // Prepare filtered excess scan data for both Summary and Log views
+            const boxSearchVal = document.getElementById('excessBoxSearch')?.value.toLowerCase() || '';
+            const dateFilterVal = document.getElementById('excessFilterDate')?.value || '';
+            const filterISOVal = dateFilterVal ? toLocalISO(dateFilterVal) : null;
+            const genSearchVal = (document.getElementById('excessGeneralSearch')?.value || '').toLowerCase();
+
+            const filteredExcess = state.excessScans.filter(s => {
+                const matchesDc = !state.activeDcCode || s.dcCode === state.activeDcCode;
+                const matchesBox = !boxSearchVal || (s.box && s.box.toString().toLowerCase().includes(boxSearchVal));
+                const matchesDate = !filterISOVal || (toLocalISO(s.timestamp) === filterISOVal);
+                const matchesGen = !genSearchVal || 
+                    (s.barcode && s.barcode.toLowerCase().includes(genSearchVal)) || 
+                    (s.scannerName && s.scannerName.toLowerCase().includes(genSearchVal)) || 
+                    (s.scannerId && s.scannerId.toLowerCase().includes(genSearchVal)) || 
+                    (s.pallet && s.pallet.toLowerCase().includes(genSearchVal)) || 
+                    (s.box && s.box.toString().toLowerCase().includes(genSearchVal));
+                return matchesBox && matchesDate && matchesGen && matchesDc;
+            });
+
+            // Excess Scan Summary per Scanner population (Dashboard Tab)
+            if (activeSummarySubTab === 'excess' && excessSumCards) {
+                 const scannerSummary = {};
+                 let grandTotalCount = 0;
+                 let grandTotalQty = 0;
+                 const grandUniqueItems = new Set();
+                 const activeNowThreshold = 30 * 60 * 1000; // 30 minutes
+
+                 if (state.isLoading) {
+                     excessSumCards.innerHTML = `
+                        <div class="card" style="grid-column: 1 / -1; height: 100px;"><div class="skeleton" style="width:100%; height:100%"></div></div>
+                        ${Array(3).fill('<div class="card" style="height:150px"><div class="skeleton" style="width:100%; height:100%"></div></div>').join('')}
+                     `;
+                     return;
+                 }
+
+                 filteredExcess.forEach(s => {
+                     const key = s.scannerId || 'Unknown';
+                     if (!scannerSummary[key]) {
+                     scannerSummary[key] = { name: s.scannerName || key, scannerId: key, count: 0, qty: 0, items: new Set(), lastScan: s.timestamp };
+                     }
+                     scannerSummary[key].count++;
+                     scannerSummary[key].qty += (parseInt(s.qty) || 0);
+                     scannerSummary[key].items.add(s.barcode);
+
+                     if (new Date(s.timestamp) > new Date(scannerSummary[key].lastScan)) {
+                         scannerSummary[key].lastScan = s.timestamp;
+                     }
+
+                     grandTotalCount++;
+                     grandTotalQty += (parseInt(s.qty) || 0);
+                     grandUniqueItems.add(s.barcode);
+                 });
+
+                 const sortedSummary = Object.values(scannerSummary).sort((a,b) => new Date(b.lastScan) - new Date(a.lastScan));
+                 const activeNowCount = sortedSummary.filter(s => (Date.now() - new Date(s.lastScan)) < activeNowThreshold).length;
+
+                 if (document.getElementById('excessSummaryUsers')) {
+                    document.getElementById('excessSummaryUsers').innerHTML = `${activeNowCount} <small style="font-size:0.6rem; color:var(--text-light)">/ ${sortedSummary.length} Total</small>`;
+                 }
+                 
+                 let summaryHtml = '';
+                 if (filteredExcess.length > 0) {
+                     // Add Grand Total Overview Card
+                     summaryHtml += `
+                        <div class="card" style="border-top: 4px solid #f97316; grid-column: 1 / -1; display: flex; justify-content: space-around; align-items: center; padding: 20px; flex-wrap: wrap; gap: 20px;">
+                            <div style="text-align: center; min-width: 100px;">
+                                <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">Grand Total Scans</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; color: var(--text);">${grandTotalCount}</div>
+                            </div>
+                            <div style="text-align: center; min-width: 100px;">
+                                <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">Total Units</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; color: var(--success);">${grandTotalQty}</div>
+                            </div>
+                            <div style="text-align: center; min-width: 100px;">
+                                <div style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">Unique Barcodes</div>
+                                <div style="font-size: 1.8rem; font-weight: 800; color: var(--primary);">${grandUniqueItems.size}</div>
+                            </div>
+                        </div>
+                     `;
+                     
+                     // Add Individual Scanner Breakdown Cards
+                     summaryHtml += sortedSummary.map(data => {
+                        const isLive = (Date.now() - new Date(data.lastScan)) < activeNowThreshold;
+                        return `
+                <div class="card" onclick="showScannerScanList('${data.scannerId}')" style="border-top: 4px solid ${isLive ? 'var(--success)' : 'var(--primary)'}; display: flex; flex-direction: column; gap: 10px; cursor: pointer;">
+                    <div style="font-weight: 800; color: ${isLive ? 'var(--success)' : 'var(--primary)'}; border-bottom: 1px solid var(--bg); padding-bottom: 6px; font-size: 0.95rem; display:flex; justify-content:space-between; align-items:center">
+                            ${data.name}
+                        ${isLive ? '<span style="display:inline-flex; align-items:center; gap:4px; font-size:0.6rem; color:var(--success); background:#dcfce7; padding:2px 6px; border-radius:4px; animation: pulse 2s infinite; border: 1px solid #bbf7d0">● LIVE</span>' : ''}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Total Scans</span>
+                            <span style="font-size: 1.3rem; font-weight: 800;">${data.count}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Units Processed</span>
+                            <span style="font-size: 1.3rem; font-weight: 800; color: var(--success);">${data.qty}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border); padding-top: 5px;">
+                            <span style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 600;">Unique Items</span>
+                            <span style="font-size: 1rem; font-weight: 700;">${data.items.size}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border); padding-top: 5px; margin-top: 5px;">
+                            <span style="font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 600;">Last Active</span>
+                            <span style="font-size: 0.8rem; font-weight: 800; color: var(--primary);">${new Date(data.lastScan).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                        </div>
+                    </div>
+                     `;}).join('');
+                 } else {
+                     summaryHtml = '<div class="empty-state" style="grid-column: 1/-1">No excess scan records available for summary.</div>';
+                 }
+                 excessSumCards.innerHTML = summaryHtml;
+            }
+
+            // Excess Scanner Summary Table (Inner Tab)
+            const excessLogView = document.getElementById('excessLogView');
+            const excessSummaryView = document.getElementById('excessSummaryView');
+            const excessSubLogBtn = document.getElementById('excessSubLogBtn');
+            const excessSubSummaryBtn = document.getElementById('excessSubSummaryBtn');
+            const scannerSummaryList = document.getElementById('excessScannerSummaryList');
+
+            if (excessLogView && excessSummaryView) {
+                const activeTab = state.activeExcessSubTab || 'log';
+                excessLogView.classList.toggle('hidden', activeTab !== 'log');
+                excessSummaryView.classList.toggle('hidden', activeTab !== 'summary');
+                if (excessSubLogBtn) excessSubLogBtn.classList.toggle('active', activeTab === 'log');
+                if (excessSubSummaryBtn) excessSubSummaryBtn.classList.toggle('active', activeTab === 'summary');
+
+                if (activeTab === 'summary' && scannerSummaryList) {
+                    const scannerStats = {};
+                    filteredExcess.forEach(s => {
+                        const id = s.scannerId || 'Unknown';
+                        if (!scannerStats[id]) {
+                            scannerStats[id] = { 
+                                id, 
+                                name: s.scannerName || id, 
+                                count: 0, 
+                                qty: 0, 
+                                barcodes: new Set(), 
+                                last: s.timestamp,
+                                asst1: s.assistant1Name,
+                                asst1Id: s.assistant1Id,
+                                asst2: s.assistant2Name,
+                                asst2Id: s.assistant2Id
+                            };
+                        }
+                        scannerStats[id].count++;
+                        scannerStats[id].qty += (parseInt(s.qty) || 0);
+                        scannerStats[id].barcodes.add(s.barcode);
+                        if (new Date(s.timestamp) > new Date(scannerStats[id].last)) scannerStats[id].last = s.timestamp;
+                    });
+
+                    const sortedStats = Object.values(scannerStats).sort((a,b) => new Date(b.last) - new Date(a.last));
+                    const activeThreshold = 30 * 60 * 1000;
+
+                    scannerSummaryList.innerHTML = sortedStats.map(stat => {
+                        const isLive = (Date.now() - new Date(stat.last)) < activeThreshold;
+                        const leadLine = `Lead: ${stat.name} (${stat.id})`;
+                        const asstArr = [];
+                        if (stat.asst1 && stat.asst1 !== '--') asstArr.push(`${stat.asst1} (${stat.asst1Id || ''})`);
+                        if (stat.asst2 && stat.asst2 !== '--') asstArr.push(`${stat.asst2} (${stat.asst2Id || ''})`);
+                        const assistLine = asstArr.length > 0 ? `Assist: ${asstArr.join(' / ')}` : '';
+
+                        return `
+                        <li class="schedule-row" onclick="showScannerScanList('${stat.id}')" style="cursor: pointer; border-left: 4px solid ${isLive ? 'var(--success)' : 'var(--border)'}">
+                            <div style="flex: 3; flex-direction: column; align-items: flex-start; justify-content: center; line-height: 1.2; overflow: hidden;">
+                                <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; font-size: 0.85rem; font-weight: 700; color: ${isLive ? 'var(--success)' : 'inherit'}">
+                                    ${leadLine}
+                                    ${isLive ? '<span style="display:inline-flex; align-items:center; gap:4px; font-size:0.55rem; color:var(--success); background:#dcfce7; padding:1px 5px; border-radius:4px; animation: pulse 2s infinite; border: 1px solid #bbf7d0">● LIVE</span>' : ''}
+                                </div>
+                                ${assistLine ? `<div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; font-size: 0.7rem; color: var(--text-light);">${assistLine}</div>` : ''}
+                            </div>
+                            <div style="flex: 0.8; justify-content: center; font-weight: 800;">${stat.count}</div>
+                            <div style="flex: 0.8; justify-content: center; color: var(--success); font-weight: 800;">${stat.qty}</div>
+                            <div style="flex: 1; justify-content: center;">${stat.barcodes.size}</div>
+                            <div style="flex: 1.2; justify-content: flex-end; padding-right: 10px; font-weight: 700; color: var(--primary);">
+                                    ${new Date(stat.last).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                                </div>
+                            </li>
+                        `;
+                    }).join('') || '<div class="empty-state">No scanner activity recorded.</div>';
+                }
+            }
 
             // Global search logic
             const searchInput = document.getElementById('globalSearchInput');
@@ -3155,10 +4034,11 @@
 
             // If searching, hide main views to show results clearly
             if (isSearching) {
-                ['homeView', 'summarySection', 'reportsSection', 'scheduleSection'].forEach(id => {
+                ['homeView', 'summarySection', 'reportsSection', 'scheduleSection', 'moreSection', 'excessScanSection'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.classList.add('hidden');
                 });
+                if (checklistSection) checklistSection.classList.add('hidden');
                 const resSec = document.getElementById('searchResultsSection');
                 if (resSec) resSec.classList.toggle('hidden', globalSearch === '');
             }
@@ -3168,9 +4048,113 @@
             if (historyUI) historyUI.style.display = isSearching ? 'none' : 'flex';
             if (historyH2) historyH2.style.display = isSearching ? 'none' : 'block';
             if (registerUI) registerUI.style.display = isSearching ? 'none' : 'flex';
+
+            // Update Checklist Team Leader Dropdown
+            const tlSelect = document.getElementById('checklistTL');
+            if (tlSelect) {
+                // Priority: Current selection > Saved selection
+                const savedTL = localStorage.getItem('lastChecklistTL');
+                const currentTL = tlSelect.value || savedTL;
+                
+                tlSelect.innerHTML = '<option value="" disabled selected>Select Team Leader...</option>' + 
+                    state.members.filter(m => m.role === 'Team leader').map(m => `<option value="${m.userid}">${m.name}</option>`).join('');
+                
+                if (currentTL && state.members.some(m => m.userid === currentTL)) {
+                    tlSelect.value = currentTL;
+                }
+            }
+
+            const checklistList = document.getElementById('checklistList');
+            if (checklistList) {
+                const shift = document.getElementById('checklistShift')?.value || '1st';
+                const opDate = getOperationalISO(new Date());
+                checklistList.innerHTML = state.checklist.map(item => `
+                    <div class="checklist-item ${state.checklistCompletions.some(c => c.taskId === item.id && c.shift === shift && toLocalISO(c.date) === opDate) ? 'completed' : ''}">
+                        <input type="checkbox" id="chk-${item.id}" ${state.checklistCompletions.some(c => c.taskId === item.id && c.shift === shift && toLocalISO(c.date) === opDate) ? 'checked' : ''} onchange="toggleChecklistItem(${item.id})">
+                        <label for="chk-${item.id}">
+                            <span style="font-size: 0.65rem; color: var(--primary); font-weight: 800; display: block; text-transform: uppercase;">${item.category}</span>
+                            ${item.task}
+                        </label>
+                    </div>
+                `).join('');
+            }
+
+            // Update Excess Scanner Dropdown
+            ['excessScannerInput', 'excessAssistant1Input', 'excessAssistant2Input'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && state.members.length > 0) {
+                    let currentVal = el.value;
+                    const options = state.members
+                    .filter(m => m.role !== 'Back up')
+                    .map(m => `<option value="${m.userid}">${m.name} (${m.userid} - ${m.role})</option>`).join('');
+                    
+                    el.innerHTML = `<option value="" ${id !== 'excessScannerInput' ? 'selected' : 'disabled'}>${id === 'excessScannerInput' ? 'Select Lead...' : 'None'}</option>` + options;
+                    if (currentVal) el.value = currentVal;
+                    else if (id === 'excessScannerInput' && localStorage.getItem('preferredScannerId')) el.value = localStorage.getItem('preferredScannerId');
+                }
+            });
+
+            // Render Excess Scan List
+            const excessScanList = document.getElementById('excessScanList');
+            const excessLimit = displayLimits.excess;
+
+            if (excessScanList) {
+                excessScanList.innerHTML = filteredExcess.slice(0, excessLimit).map(s => `
+                    ${(() => {
+                        const leadLine = `Lead: ${s.scannerName || 'Unknown'} (${s.scannerId || ''})`;
+                        const asstArr = [];
+                        if (s.assistant1Name && s.assistant1Name !== '--') asstArr.push(`${s.assistant1Name} (${s.assistant1Id || ''})`);
+                        if (s.assistant2Name && s.assistant2Name !== '--') asstArr.push(`${s.assistant2Name} (${s.assistant2Id || ''})`);
+                        const assistLine = asstArr.length > 0 ? `Assist: ${asstArr.join(' / ')}` : '';
+                        return `
+                    <li class="schedule-row">
+                        <div style="flex: 1.2; flex-direction: column; align-items: flex-start; justify-content: center; line-height: 1.1; gap: 2px; overflow: hidden;">
+                            <span style="font-weight: 800; color: var(--text); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">${new Date(s.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                            <span style="font-size: 0.6rem; color: var(--text-light); font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">${new Date(s.timestamp).toLocaleDateString([], {day:'2-digit', month:'short', year:'2-digit'})}</span>
+                        </div>
+                        <div style="flex: 3; flex-direction: column; align-items: flex-start; justify-content: center; line-height: 1.2; overflow: hidden;" title="${leadLine}${assistLine ? ' | ' + assistLine : ''}">
+                            <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; font-size: 0.85rem; font-weight: 600;">${highlightMatch(leadLine, genSearchVal)}</div>
+                            ${assistLine ? `<div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; font-size: 0.7rem; color: var(--text-light);">${highlightMatch(assistLine, genSearchVal)}</div>` : ''}
+                        </div>
+                        <div style="flex: 1.5; font-weight: 700;" title="${s.barcode}">${highlightMatch(s.barcode, genSearchVal)}</div>
+                        <div style="flex: 0.6; text-align: center; color: var(--primary); font-weight: 800;">${s.qty}</div>
+                        <div style="flex: 1.2;" title="${s.box}">${highlightMatch(s.box, genSearchVal || boxSearchVal)}</div>
+                        <div style="flex: 1;" title="${s.pallet}">${highlightMatch(s.pallet, genSearchVal)}</div>
+                        <div style="width: 70px; text-align: right; display:flex; gap:4px; justify-content:flex-end; padding-right:5px">
+                            <button class="btn-action-sm" onclick="editExcessScan(${s.id})"><span class="material-symbols-outlined" style="font-size:14px">edit</span></button>
+                            <button class="btn-action-sm" onclick="deleteExcessScan(${s.id})" style="color:var(--danger)"><span class="material-symbols-outlined" style="font-size:14px">delete</span></button>
+                        </div>
+                    </li>
+                    `})()}
+                `).join('') || '<div class="empty-state">No excess items logged yet.</div>';
+
+                if (filteredExcess.length > excessLimit) {
+                    excessScanList.innerHTML += `
+                    <div style="padding: 15px; text-align: center;">
+                        <button onclick="loadMore('excess')" style="width: 100%; background: var(--bg); color: var(--primary); border: 1px solid var(--border); padding: 10px; font-size: 0.85rem; font-weight: 600;">
+                            Load More (${filteredExcess.length - excessLimit} remaining)
+                        </button>
+                    </div>`;
+                }
+
+                if (document.getElementById('excessSummaryTotal')) {
+                    document.getElementById('excessSummaryTotal').innerText = filteredExcess.length;
+                    // Note: excessSummaryUsers is now handled in the Dashboard Summary block above for consistency
+                    if (activeSummarySubTab !== 'excess') {
+                        document.getElementById('excessSummaryUsers').innerText = new Set(filteredExcess.map(s => s.scannerId)).size;
+                    }
+                    const lastScan = filteredExcess[0];
+                    document.getElementById('excessSummaryLast').innerText = lastScan ? new Date(lastScan.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
+                }
+            }
             
-            // Ensure footer stays visible so user can exit search or navigate
-            if (footerNav) footerNav.style.display = 'flex';
+            // Update Footer More Badge
+            const unfinishedCount = state.checklist.filter(item => !item.completed).length;
+            const moreBadge = document.getElementById('moreBadge');
+            if (moreBadge) {
+                moreBadge.innerText = unfinishedCount;
+                moreBadge.classList.toggle('hidden', unfinishedCount === 0);
+            }
             
             mainTabGroups.forEach(tg => tg.style.display = isSearching ? 'none' : '');
 
@@ -3547,23 +4531,37 @@
             if(document.getElementById('regTotalCount')) document.getElementById('regTotalCount').innerText = totalMembers;
             
             // Update Shift Summaries
-            if(document.getElementById('sumS1TotalPercent')) document.getElementById('sumS1TotalPercent').innerText = s1.totalPct + '%';
-            if(document.getElementById('sumS1TotalSub')) document.getElementById('sumS1TotalSub').innerText = `${s1.total} / ${s1.requirement}`;
-            if(document.getElementById('sumS1PresentCount')) document.getElementById('sumS1PresentCount').innerText = s1.present;
-            if(document.getElementById('sumS1PresentSub')) document.getElementById('sumS1PresentSub').innerText = `${s1.present} / ${s1.requirement}`;
+            const updateShiftCard = (idPrefix, data) => {
+                const percentEl = document.getElementById(`sum${idPrefix}TotalPercent`);
+                const subEl = document.getElementById(`sum${idPrefix}TotalSub`);
+                const presentEl = document.getElementById(`sum${idPrefix}PresentCount`);
+                const presentSubEl = document.getElementById(`sum${idPrefix}PresentSub`);
 
-            if(document.getElementById('sumS2TotalPercent')) document.getElementById('sumS2TotalPercent').innerText = s2.totalPct + '%';
-            if(document.getElementById('sumS2TotalSub')) document.getElementById('sumS2TotalSub').innerText = `${s2.total} / ${s2.requirement}`;
-            if(document.getElementById('sumS2PresentCount')) document.getElementById('sumS2PresentCount').innerText = s2.present;
-            if(document.getElementById('sumS2PresentSub')) document.getElementById('sumS2PresentSub').innerText = `${s2.present} / ${s2.requirement}`;
+                if (state.isLoading) {
+                    if (percentEl) percentEl.innerHTML = '<span class="skeleton" style="width:60%; height:2.2rem"></span>';
+                    if (subEl) subEl.innerHTML = '<span class="skeleton" style="width:40%; height:0.75rem"></span>';
+                    if (presentEl) presentEl.innerHTML = '<span class="skeleton" style="width:40%; height:2.2rem"></span>';
+                    if (presentSubEl) presentSubEl.innerHTML = '<span class="skeleton" style="width:40%; height:0.75rem"></span>';
+                } else {
+                    if (percentEl) percentEl.innerText = data.totalPct + '%';
+                    if (subEl) subEl.innerText = `${data.total} / ${data.requirement}`;
+                    if (presentEl) presentEl.innerText = data.present;
+                    if (presentSubEl) presentSubEl.innerText = `${data.present} / ${data.requirement}`;
+                }
+            };
+            updateShiftCard('S1', s1);
+            updateShiftCard('S2', s2);
+            updateShiftCard('S3', s3);
 
-            if(document.getElementById('sumS3TotalPercent')) document.getElementById('sumS3TotalPercent').innerText = s3.totalPct + '%';
-            if(document.getElementById('sumS3TotalSub')) document.getElementById('sumS3TotalSub').innerText = `${s3.total} / ${s3.requirement}`;
-            if(document.getElementById('sumS3PresentCount')) document.getElementById('sumS3PresentCount').innerText = s3.present;
-            if(document.getElementById('sumS3PresentSub')) document.getElementById('sumS3PresentSub').innerText = `${s3.present} / ${s3.requirement}`;
-
-            if(document.getElementById('sumBreak')) document.getElementById('sumBreak').innerText = breakCount;
-            if(document.getElementById('sumLongBreak')) document.getElementById('sumLongBreak').innerText = longBreakCount;
+            if(document.getElementById('sumBreak')) {
+                if (state.isLoading) {
+                    document.getElementById('sumBreak').innerHTML = '<span class="skeleton" style="width:40%; height:2.2rem"></span>';
+                    document.getElementById('sumLongBreak').innerHTML = '<span class="skeleton" style="width:40%; height:2.2rem"></span>';
+                } else {
+                    document.getElementById('sumBreak').innerText = breakCount;
+                    document.getElementById('sumLongBreak').innerText = longBreakCount;
+                }
+            }
 
             // Update Reports Reserved Summary
             if (state.tasks) {
@@ -3595,10 +4593,17 @@
 
             const countersOnBreak = operationalCounters.filter(m => m.status === 'On Break').length;
 
-            if(document.getElementById('sumCycleActive')) document.getElementById('sumCycleActive').innerText = totalActiveCounters;
-            if(document.getElementById('sumCycleInactive')) document.getElementById('sumCycleInactive').innerText = totalInactiveCounters;
-            if(document.getElementById('sumCycleLong')) document.getElementById('sumCycleLong').innerText = longCycleCount;
-            if(document.getElementById('sumCycleBreak')) document.getElementById('sumCycleBreak').innerText = countersOnBreak;
+            const updateCycleCard = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (state.isLoading) el.innerHTML = '<span class="skeleton" style="width:50%; height:2.2rem"></span>';
+                    else el.innerText = value;
+                }
+            };
+            updateCycleCard('sumCycleActive', totalActiveCounters);
+            updateCycleCard('sumCycleInactive', totalInactiveCounters);
+            updateCycleCard('sumCycleLong', longCycleCount);
+            updateCycleCard('sumCycleBreak', countersOnBreak);
         }
 
         // Handle scroll events for sticky UI and back-to-top button
@@ -3704,6 +4709,13 @@
 
         updateClock();
 
+        // Global listener for scanner selection persistence
+        document.addEventListener('change', (e) => {
+            if (e.target && e.target.id === 'excessScannerInput') {
+                localStorage.setItem('preferredScannerId', e.target.value);
+            }
+        });
+
         // Initialize filter values from state safely
         const fromFilter = document.getElementById('historyFromDate');
         const toFilter = document.getElementById('historyToDate');
@@ -3719,11 +4731,13 @@
         switchProductivitySubTab(state.activeProductivitySubTab || 'active');
         switchSummarySubTab(state.activeSummarySubTab || 'shift');
 
+        if (document.getElementById('excessDcFilter')) document.getElementById('excessDcFilter').value = state.activeDcCode || '';
+
         if (supabaseClient) {
             fetchInitialData(true);
             initRealtime();
-            // Add auto-refresh every 2 seconds to ensure sync across all devices
-            setInterval(() => fetchInitialData(), 2000);
+            // Auto-refresh every 2 seconds to ensure cross-device synchronization
+            setInterval(() => fetchInitialData(false), 2000);
         } else {
             render();
         }
