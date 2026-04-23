@@ -1319,6 +1319,7 @@
                         </button>
                         <select id="excessDcFilter" onchange="state.activeDcCode = this.value; saveData();" style="font-size: 0.75rem; padding: 4px; border: 1px solid var(--border); border-radius: 4px; width: 110px; font-weight: bold; color: var(--primary);">
                             <option value="">ALL DCs</option>
+                            <option value="">SELECT DC</option>
                             <option value="2367">DC 2367</option>
                             <option value="7132">DC 7132</option>
                         </select>
@@ -1402,7 +1403,8 @@
                     <div id="excessLogView">
                         <div class="table-header">
                             <div style="flex: 1.2;">Time & Date</div>
-                            <div style="flex: 3;">Crew (Lead + Assistants)</div>
+                            <div style="flex: 0.8;">DC Code</div>
+                            <div style="flex: 2.2;">Crew (Lead + Assistants)</div>
                             <div style="flex: 1.5;">Barcode</div>
                             <div style="flex: 0.6; text-align: center;">Qty</div>
                             <div style="flex: 1.2;">Box # or Location</div>
@@ -2329,6 +2331,16 @@
         }
 
         async function addExcessScan() {
+            if (!state.activeDcCode) {
+                showToast("Please select a DC Code before scanning!", "error");
+                const dcFilter = document.getElementById('excessDcFilter');
+                if (dcFilter) {
+                    dcFilter.focus();
+                    dcFilter.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.4)';
+                    setTimeout(() => dcFilter.style.boxShadow = 'none', 3000);
+                }
+                return;
+            }
             const scannerId = document.getElementById('excessScannerInput').value;
             const asst1Id = document.getElementById('excessAssistant1Input').value;
             const asst2Id = document.getElementById('excessAssistant2Input').value;
@@ -4112,7 +4124,8 @@
                             <span style="font-weight: 800; color: var(--text); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">${new Date(s.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                             <span style="font-size: 0.6rem; color: var(--text-light); font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">${new Date(s.timestamp).toLocaleDateString([], {day:'2-digit', month:'short', year:'2-digit'})}</span>
                         </div>
-                        <div style="flex: 3; flex-direction: column; align-items: flex-start; justify-content: center; line-height: 1.2; overflow: hidden;" title="${leadLine}${assistLine ? ' | ' + assistLine : ''}">
+                        <div style="flex: 0.8; font-weight: 800; color: var(--primary);">${s.dcCode || '--'}</div>
+                        <div style="flex: 2.2; flex-direction: column; align-items: flex-start; justify-content: center; line-height: 1.2; overflow: hidden;" title="${leadLine}${assistLine ? ' | ' + assistLine : ''}">
                             <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; font-size: 0.85rem; font-weight: 600;">${highlightMatch(leadLine, genSearchVal)}</div>
                             ${assistLine ? `<div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; font-size: 0.7rem; color: var(--text-light);">${highlightMatch(assistLine, genSearchVal)}</div>` : ''}
                         </div>
