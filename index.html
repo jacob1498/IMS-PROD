@@ -2156,6 +2156,29 @@
             } 
         }
 
+        async function debugSupabaseSchema() {
+            if (!supabaseClient) return showToast("Supabase not connected", "error");
+            
+            toggleLoader(true);
+            // We try to select only the 'remarks' column. 
+            // If it doesn't exist, Postgres returns error 42703 (undefined_column).
+            const { data, error } = await supabaseClient
+                .from('excess_scans')
+                .select('remarks')
+                .limit(1);
+            
+            toggleLoader(false);
+
+            if (error && error.code === '42703') {
+                showToast("CRITICAL: 'remarks' column is MISSING in Supabase!", "error");
+                console.error("Schema Error: Table 'excess_scans' does not have a 'remarks' column.", error);
+            } else if (error) {
+                showToast("Connection Error: " + error.message, "error");
+            } else {
+                showToast("Success: 'remarks' column exists and is accessible.", "success");
+            }
+        }
+
         let renderTimeout;
         function debouncedRender() {
             if (renderTimeout) clearTimeout(renderTimeout);
@@ -2515,7 +2538,8 @@
                         (s.scannerName && s.scannerName.toLowerCase().includes(genSearch)) || 
                         (s.scannerId && s.scannerId.toLowerCase().includes(genSearch)) || 
                         (s.pallet && s.pallet.toLowerCase().includes(genSearch)) || 
-                        (s.box && s.box.toString().toLowerCase().includes(genSearch)));
+                        (s.box && s.box.toString().toLowerCase().includes(genSearch)) ||
+                        (s.remarks && s.remarks.toLowerCase().includes(genSearch)));
                 }
             } else {
                 if (boxFilter) filteredData = filteredData.filter(s => s.box && s.box.toString().toLowerCase().includes(boxFilter));
@@ -2524,7 +2548,8 @@
                     (s.scannerName && s.scannerName.toLowerCase().includes(genSearch)) || 
                     (s.scannerId && s.scannerId.toLowerCase().includes(genSearch)) || 
                     (s.pallet && s.pallet.toLowerCase().includes(genSearch)) || 
-                    (s.box && s.box.toString().toLowerCase().includes(genSearch)));
+                    (s.box && s.box.toString().toLowerCase().includes(genSearch)) ||
+                    (s.remarks && s.remarks.toLowerCase().includes(genSearch)));
             }
 
             if (filteredData.length === 0) return showToast("No records found matching these filters!", "error");
@@ -2532,9 +2557,8 @@
             toggleLoader(true);
             setTimeout(() => {
                 try {
-                    
-                    const headers = ["Timestamp", "Lead Scanner", "Lead ID", "Assistant 1", "Asst 1 ID", "Assistant 2", "Asst 2 ID", "Barcode", "Qty", "Box Number", "Pallet Ref", "DC Code"];
-                    const csvRows = [headers.join(",")];
+                    const headers = ["Timestamp", "Lead Scanner", "Lead ID", "Assistant 1", "Asst 1 ID", "Assistant 2", "Asst 2 ID", "Barcode", "Remarks", "Qty", "Box Number", "Pallet Ref", "DC Code"];
+                    const csvRows = [headers.join(',')];
                     filteredData.forEach(s => {
                         const row = [
                             new Date(s.timestamp).toLocaleString(),
@@ -2545,11 +2569,12 @@
                             s.assistant2Name || '--',
                             s.assistant2Id || '--',
                             s.barcode,
+                            s.remarks || '--',
                             s.qty,
                             s.box,
                             s.pallet,
                             s.dcCode || '--'
-                        ];
+                        ]; // Ensure 'remarks' is already part of the 's' object
                         csvRows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
                     });
                     downloadFile(csvRows.join("\n"), `Excess_Smart_Export_${new Date().toISOString().slice(0,10)}.csv`);
@@ -2579,7 +2604,8 @@
                 (s.scannerName && s.scannerName.toLowerCase().includes(genSearch)) || 
                 (s.scannerId && s.scannerId.toLowerCase().includes(genSearch)) || 
                 (s.pallet && s.pallet.toLowerCase().includes(genSearch)) || 
-                (s.box && s.box.toString().toLowerCase().includes(genSearch)));
+                (s.box && s.box.toString().toLowerCase().includes(genSearch)) ||
+                (s.remarks && s.remarks.toLowerCase().includes(genSearch)));
 
             if (filteredData.length === 0) return showToast("No records found matching current filters to clear.", "error");
             if (!confirm(`Are you sure you want to PERMANENTLY DELETE ${filteredData.length} filtered records from the database? This action cannot be undone.`)) return;
@@ -3863,7 +3889,8 @@
                     (s.scannerName && s.scannerName.toLowerCase().includes(genSearchVal)) || 
                     (s.scannerId && s.scannerId.toLowerCase().includes(genSearchVal)) || 
                     (s.pallet && s.pallet.toLowerCase().includes(genSearchVal)) || 
-                    (s.box && s.box.toString().toLowerCase().includes(genSearchVal));
+                    (s.box && s.box.toString().toLowerCase().includes(genSearchVal)) ||
+                    (s.remarks && s.remarks.toLowerCase().includes(genSearchVal));
                 return matchesBox && matchesDate && matchesGen && matchesDc;
             });
 
