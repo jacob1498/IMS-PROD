@@ -1357,9 +1357,14 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                         <h3 style="grid-column: 1 / -1; font-size: 0.75rem; text-transform: uppercase; color: var(--primary); margin: 5px 0 5px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center;">
                             Logistics & Crew Requirement
-                            <button id="toggleLogisticsBtn" onclick="toggleExcessVisibility('logistics')" style="background:none; color:var(--primary); padding:0; height:auto; min-height:0; transform:none; border:none; box-shadow:none;">
-                                <span class="material-symbols-outlined">expand_less</span>
-                            </button>
+                            <div style="display: flex; gap: 8px;">
+                                <button id="lockLogisticsBtn" onclick="toggleExcessLock()" style="background:none; color:var(--primary); padding:0; height:auto; min-height:0; transform:none; border:none; box-shadow:none;" title="Lock/Unlock Requirements">
+                                    <span class="material-symbols-outlined">lock_open</span>
+                                </button>
+                                <button id="toggleLogisticsBtn" onclick="toggleExcessVisibility('logistics')" style="background:none; color:var(--primary); padding:0; height:auto; min-height:0; transform:none; border:none; box-shadow:none;">
+                                    <span class="material-symbols-outlined">expand_less</span>
+                                </button>
+                            </div>
                         </h3>
                         <div id="excessLogisticsFields" style="display: contents;">
                         <div>
@@ -1826,6 +1831,7 @@
             excessFormVisible: true,
             excessTableVisible: true,
             excessLogisticsVisible: true,
+            excessLogisticsLocked: false,
             activeExcessSubTab: 'log',
             activeDcCode: ''
         };
@@ -2284,7 +2290,8 @@
                 activeDcCode: state.activeDcCode,
                 excessFormVisible: state.excessFormVisible,
                 excessTableVisible: state.excessTableVisible,
-                excessLogisticsVisible: state.excessLogisticsVisible
+                excessLogisticsVisible: state.excessLogisticsVisible,
+                excessLogisticsLocked: state.excessLogisticsLocked
             };
             localStorage.setItem('trackerUI', JSON.stringify(uiState));
             render();
@@ -2303,6 +2310,11 @@
             if (type === 'form') state.excessFormVisible = !state.excessFormVisible;
             if (type === 'table') state.excessTableVisible = !state.excessTableVisible;
             if (type === 'logistics') state.excessLogisticsVisible = !state.excessLogisticsVisible;
+            saveData();
+        }
+
+        function toggleExcessLock() {
+            state.excessLogisticsLocked = !state.excessLogisticsLocked;
             saveData();
         }
 
@@ -2454,6 +2466,8 @@
             state.editingExcessId = null;
 
             showToast("Excess entry saved!", "success");
+            state.excessLogisticsVisible = false;
+            saveData();
             document.getElementById('excessBarcode').value = '';
             document.getElementById('excessQty').value = '';
             document.getElementById('excessBox').value = '';
@@ -3765,6 +3779,9 @@
             if (logFields) logFields.style.display = state.excessLogisticsVisible ? 'contents' : 'none';
             if (logToggleBtn) logToggleBtn.innerHTML = `<span class="material-symbols-outlined">${state.excessLogisticsVisible ? 'expand_less' : 'expand_more'}</span>`;
 
+            const lockBtn = document.getElementById('lockLogisticsBtn');
+            if (lockBtn) lockBtn.innerHTML = `<span class="material-symbols-outlined">${state.excessLogisticsLocked ? 'lock' : 'lock_open'}</span>`;
+
             const attendanceList = document.getElementById('attendanceList');
             const historyList = document.getElementById('historyList');
             const registerList = document.getElementById('registerList');
@@ -4168,7 +4185,7 @@
                 if (el && state.members.length > 0) {
                     let currentVal = el.value;
                     const options = state.members
-                    .filter(m => m.role !== 'Back up')
+                    .filter(m => m.role === 'Scanner')
                     .map(m => `<option value="${m.userid}">${m.name} (${m.userid} - ${m.role})</option>`).join('');
                     
                     el.innerHTML = `<option value="" ${id !== 'excessScannerInput' ? 'selected' : 'disabled'}>${id === 'excessScannerInput' ? 'Select Lead...' : 'None'}</option>` + options;
@@ -4844,4 +4861,5 @@
         }
     </script>
 </body>
+</html>
 </html>
