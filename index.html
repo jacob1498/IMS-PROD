@@ -1356,6 +1356,13 @@
                 <div id="excessScanForm" class="card" style="margin-bottom: 20px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                         <h3 style="grid-column: 1 / -1; font-size: 0.75rem; text-transform: uppercase; color: var(--primary); margin: 5px 0 5px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px; letter-spacing: 0.05em;">Logistics & Crew Requirement</h3>
+                        <h3 style="grid-column: 1 / -1; font-size: 0.75rem; text-transform: uppercase; color: var(--primary); margin: 5px 0 5px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center;">
+                            Logistics & Crew Requirement
+                            <button id="toggleLogisticsBtn" onclick="toggleExcessVisibility('logistics')" style="background:none; color:var(--primary); padding:0; height:auto; min-height:0; transform:none; border:none; box-shadow:none;">
+                                <span class="material-symbols-outlined">expand_less</span>
+                            </button>
+                        </h3>
+                        <div id="excessLogisticsFields" style="display: contents;">
                         <div>
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Remarks</label>
                             <select id="excessRemarks" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white; font-weight: bold; color: var(--text);" onkeyup="if(event.key==='Enter') document.getElementById('excessDcInput').focus()">
@@ -1388,6 +1395,7 @@
                         <div>
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Assistant 2</label>
                             <select id="excessAssistant2Input" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white;"></select>
+                        </div>
                         </div>
                         <h3 style="grid-column: 1 / -1; font-size: 0.75rem; text-transform: uppercase; color: var(--primary); margin: 15px 0 5px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px; letter-spacing: 0.05em;">Entry Details</h3>
                         <div>
@@ -1818,6 +1826,7 @@
             scheduleView: 'table',
             excessFormVisible: true,
             excessTableVisible: true,
+            excessLogisticsVisible: true,
             activeExcessSubTab: 'log',
             activeDcCode: ''
         };
@@ -2273,7 +2282,10 @@
                 activeAttendanceSubTab: state.activeAttendanceSubTab,
                 activeProductivitySubTab: state.activeProductivitySubTab,
                 activeSummarySubTab: state.activeSummarySubTab,
-                activeDcCode: state.activeDcCode
+                activeDcCode: state.activeDcCode,
+                excessFormVisible: state.excessFormVisible,
+                excessTableVisible: state.excessTableVisible,
+                excessLogisticsVisible: state.excessLogisticsVisible
             };
             localStorage.setItem('trackerUI', JSON.stringify(uiState));
             render();
@@ -2291,6 +2303,7 @@
         function toggleExcessVisibility(type) {
             if (type === 'form') state.excessFormVisible = !state.excessFormVisible;
             if (type === 'table') state.excessTableVisible = !state.excessTableVisible;
+            if (type === 'logistics') state.excessLogisticsVisible = !state.excessLogisticsVisible;
             saveData();
         }
 
@@ -3747,6 +3760,11 @@
             if (excessTableCard) excessTableCard.classList.toggle('hidden', !state.excessTableVisible);
             if (formBtn) formBtn.innerHTML = `<span class="material-symbols-outlined">${state.excessFormVisible ? 'visibility' : 'visibility_off'}</span>`;
             if (tableBtn) tableBtn.innerHTML = `<span class="material-symbols-outlined">${state.excessTableVisible ? 'visibility' : 'visibility_off'}</span>`;
+
+            const logFields = document.getElementById('excessLogisticsFields');
+            const logToggleBtn = document.getElementById('toggleLogisticsBtn');
+            if (logFields) logFields.style.display = state.excessLogisticsVisible ? 'contents' : 'none';
+            if (logToggleBtn) logToggleBtn.innerHTML = `<span class="material-symbols-outlined">${state.excessLogisticsVisible ? 'expand_less' : 'expand_more'}</span>`;
 
             const attendanceList = document.getElementById('attendanceList');
             const historyList = document.getElementById('historyList');
