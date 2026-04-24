@@ -1356,6 +1356,19 @@
                 <div id="excessScanForm" class="card" style="margin-bottom: 20px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                         <div>
+                            <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Remarks</label>
+                            <select id="excessRemarks" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white; font-weight: bold; color: var(--text);" onkeyup="if(event.key==='Enter') document.getElementById('excessDcInput').focus()">
+                                <option value="">SELECT REMARK</option>
+                                <option value="Damaged">Damaged</option>
+                                <option value="Excess">Excess</option>
+                                <option value="Near Expiry">Near Expiry</option>
+                                <option value="Addback">Addback</option>
+                                <option value="Stocks Transfer">Stocks Transfer</option>
+                                <option value="Cancelled">Cancelled</option>
+                                <option value="Disposal">Disposal</option>
+                            </select>
+                        </div>
+                        <div>
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">DC Code</label>
                             <select id="excessDcInput" onchange="state.activeDcCode = this.value; if(document.getElementById('excessDcFilter')) document.getElementById('excessDcFilter').value = this.value; render();" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white; font-weight: bold; color: var(--primary);">
                                 <option value="">SELECT DC</option>
@@ -1392,20 +1405,7 @@
                         </div>
                         <div>
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Pallet Reference</label>
-                            <input type="text" id="excessPallet" placeholder="P-999" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') document.getElementById('excessRemarks').focus()">
-                        </div>
-                        <div style="grid-column: 1 / -1;">
-                            <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Remarks</label>
-                            <select id="excessRemarks" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white; font-weight: bold; color: var(--text);" onkeyup="if(event.key==='Enter') addExcessScan()">
-                                <option value="">SELECT REMARK</option>
-                                <option value="Damaged">Damaged</option>
-                                <option value="Excess">Excess</option>
-                                <option value="Near Expiry">Near Expiry</option>
-                                <option value="Addback">Addback</option>
-                                <option value="Stocks Transfer">Stocks Transfer</option>
-                                <option value="Cancelled">Cancelled</option>
-                                <option value="Disposal">Disposal</option>
-                            </select>
+                            <input type="text" id="excessPallet" placeholder="P-999" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') addExcessScan()">
                         </div>
                     </div>
                 </div>
