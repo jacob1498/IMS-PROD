@@ -1356,6 +1356,14 @@
                 <div id="excessScanForm" class="card" style="margin-bottom: 20px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                         <div>
+                            <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">DC Code</label>
+                            <select id="excessDcInput" onchange="state.activeDcCode = this.value; if(document.getElementById('excessDcFilter')) document.getElementById('excessDcFilter').value = this.value; render();" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white; font-weight: bold; color: var(--primary);">
+                                <option value="">SELECT DC</option>
+                                <option value="2367">DC 2367</option>
+                                <option value="7132">DC 7132</option>
+                            </select>
+                        </div>
+                        <div>
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Lead Scanner</label>
                             <select id="excessScannerInput" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white;" onchange="localStorage.setItem('preferredScannerId', this.value)"></select>
                         </div>
@@ -1363,7 +1371,7 @@
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Assistant 1</label>
                             <select id="excessAssistant1Input" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white;"></select>
                         </div>
-                        <div style="grid-column: 1 / -1;">
+                        <div>
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Assistant 2</label>
                             <select id="excessAssistant2Input" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white;"></select>
                         </div>
@@ -1384,7 +1392,20 @@
                         </div>
                         <div>
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Pallet Reference</label>
-                            <input type="text" id="excessPallet" placeholder="P-999" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') addExcessScan()">
+                            <input type="text" id="excessPallet" placeholder="P-999" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') document.getElementById('excessRemarks').focus()">
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Remarks</label>
+                            <select id="excessRemarks" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white; font-weight: bold; color: var(--text);" onkeyup="if(event.key==='Enter') addExcessScan()">
+                                <option value="">SELECT REMARK</option>
+                                <option value="Damaged">Damaged</option>
+                                <option value="Excess">Excess</option>
+                                <option value="Near Expiry">Near Expiry</option>
+                                <option value="Addback">Addback</option>
+                                <option value="Stocks Transfer">Stocks Transfer</option>
+                                <option value="Cancelled">Cancelled</option>
+                                <option value="Disposal">Disposal</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -1404,7 +1425,7 @@
                             <div style="flex: 1.2;">Time & Date</div>
                             <div style="flex: 0.8;">DC Code</div>
                             <div style="flex: 2.2;">Crew (Lead + Assistants)</div>
-                            <div style="flex: 1.5;">Barcode</div>
+                            <div style="flex: 1.5;">Barcode / Remarks</div>
                             <div style="flex: 0.6; text-align: center;">Qty</div>
                             <div style="flex: 1.2;">Box # or Location</div>
                             <div style="flex: 1;">Pallet</div>
@@ -2347,6 +2368,7 @@
             const qty = document.getElementById('excessQty').value;
             const box = document.getElementById('excessBox').value;
             const pallet = document.getElementById('excessPallet').value;
+            const remarks = document.getElementById('excessRemarks').value;
 
             // Validation to avoid accidental barcode input in pallet field (detects long numeric strings)
             if (pallet.length > 10 && /^\d+$/.test(pallet)) {
@@ -2376,6 +2398,7 @@
                 qty: parseInt(qty),
                 box: box || '--',
                 pallet: pallet || '--',
+                remarks: remarks || '--',
                 dcCode: state.activeDcCode || '--',
                 timestamp: new Date().toISOString()
             };
@@ -2398,6 +2421,7 @@
             document.getElementById('excessQty').value = '';
             document.getElementById('excessBox').value = '';
             document.getElementById('excessPallet').value = '';
+            document.getElementById('excessRemarks').value = '';
             document.getElementById('excessBarcode').focus();
             render();
         }
@@ -2434,6 +2458,8 @@
             document.getElementById('excessQty').value = scan.qty;
             document.getElementById('excessBox').value = scan.box === '--' ? '' : scan.box;
             document.getElementById('excessPallet').value = scan.pallet === '--' ? '' : scan.pallet;
+            document.getElementById('excessRemarks').value = scan.remarks === '--' ? '' : scan.remarks;
+            document.getElementById('excessDcInput').value = scan.dcCode || '';
             document.getElementById('excessBarcode').focus();
             showToast("Editing entry...", "info");
         }
@@ -4104,10 +4130,11 @@
                     else if (id === 'excessScannerInput' && localStorage.getItem('preferredScannerId')) el.value = localStorage.getItem('preferredScannerId');
                 }
             });
+            if (document.getElementById('excessDcInput')) document.getElementById('excessDcInput').value = state.activeDcCode || '';
 
             // Disable scanning form if no DC is selected
             const isDcMissing = !state.activeDcCode;
-            ['excessScannerInput', 'excessAssistant1Input', 'excessAssistant2Input', 'excessBarcode', 'excessQty', 'excessBox', 'excessPallet'].forEach(id => {
+            ['excessScannerInput', 'excessAssistant1Input', 'excessAssistant2Input', 'excessBarcode', 'excessQty', 'excessBox', 'excessPallet', 'excessRemarks'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
                     el.disabled = isDcMissing;
@@ -4141,7 +4168,10 @@
                             <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; font-size: 0.85rem; font-weight: 600;">${highlightMatch(leadLine, genSearchVal)}</div>
                             ${assistLine ? `<div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; font-size: 0.7rem; color: var(--text-light);">${highlightMatch(assistLine, genSearchVal)}</div>` : ''}
                         </div>
-                        <div style="flex: 1.5; font-weight: 700;" title="${s.barcode}">${highlightMatch(s.barcode, genSearchVal)}</div>
+                        <div style="flex: 1.5; flex-direction: column; align-items: flex-start; line-height: 1.1; overflow: hidden;" title="${s.barcode}">
+                            <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; font-weight: 700;">${highlightMatch(s.barcode, genSearchVal)}</div>
+                            ${s.remarks && s.remarks !== '--' ? `<div style="font-size: 0.6rem; color: var(--primary); font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;" title="${s.remarks}">${highlightMatch(s.remarks, genSearchVal)}</div>` : ''}
+                        </div>
                         <div style="flex: 0.6; text-align: center; color: var(--primary); font-weight: 800;">${s.qty}</div>
                         <div style="flex: 1.2;" title="${s.box}">${highlightMatch(s.box, genSearchVal || boxSearchVal)}</div>
                         <div style="flex: 1;" title="${s.pallet}">${highlightMatch(s.pallet, genSearchVal)}</div>
