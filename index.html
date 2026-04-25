@@ -2484,7 +2484,6 @@
             document.getElementById('excessQty').value = '';
             document.getElementById('excessBox').value = '';
             document.getElementById('excessPallet').value = '';
-            document.getElementById('excessRemarks').value = '';
             document.getElementById('excessBarcode').focus();
             render();
         }
@@ -4207,18 +4206,28 @@
             });
             if (document.getElementById('excessDcInput')) document.getElementById('excessDcInput').value = state.activeDcCode || '';
 
-            // Disable scanning form if no DC is selected
-            const isDcMissing = !state.activeDcCode;
-            ['excessScannerInput', 'excessAssistant1Input', 'excessAssistant2Input', 'excessBarcode', 'excessQty', 'excessBox', 'excessPallet', 'excessRemarks'].forEach(id => {
+            // Logistics Locking: Disables Remarks, DC, and Crew if Locked
+            const logisticsIds = ['excessRemarks', 'excessDcInput', 'excessScannerInput', 'excessAssistant1Input', 'excessAssistant2Input'];
+            logisticsIds.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
-                    el.disabled = isDcMissing;
-                    el.style.opacity = isDcMissing ? '0.5' : '1';
+                    el.disabled = state.excessLogisticsLocked;
+                    el.style.opacity = state.excessLogisticsLocked ? '0.8' : '1';
+                }
+            });
+
+            // Entry Validation: Disables Barcode entry if DC or Remarks are missing
+            const isEntryDisabled = !state.activeDcCode || !document.getElementById('excessRemarks')?.value;
+            ['excessBarcode', 'excessQty', 'excessBox', 'excessPallet'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.disabled = isEntryDisabled;
+                    el.style.opacity = isEntryDisabled ? '0.5' : '1';
                     el.style.transition = 'opacity 0.2s';
                 }
             });
             const boxBtn = document.querySelector('button[onclick="generateBoxNumber()"]');
-            if (boxBtn) { boxBtn.disabled = isDcMissing; boxBtn.style.opacity = isDcMissing ? '0.5' : '1'; }
+            if (boxBtn) { boxBtn.disabled = isEntryDisabled; boxBtn.style.opacity = isEntryDisabled ? '0.5' : '1'; }
 
             // Render Excess Scan List
             const excessScanList = document.getElementById('excessScanList');
