@@ -2410,6 +2410,19 @@
                 }
                 return;
             }
+
+            const remarks = document.getElementById('excessRemarks').value;
+            if (!remarks) {
+                showToast("Please select a Remark before scanning!", "error");
+                const remarksEl = document.getElementById('excessRemarks');
+                if (remarksEl) {
+                    remarksEl.focus();
+                    remarksEl.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.4)';
+                    setTimeout(() => remarksEl.style.boxShadow = 'none', 3000);
+                }
+                return;
+            }
+
             const scannerId = document.getElementById('excessScannerInput').value;
             const asst1Id = document.getElementById('excessAssistant1Input').value;
             const asst2Id = document.getElementById('excessAssistant2Input').value;
@@ -2417,7 +2430,6 @@
             const qty = document.getElementById('excessQty').value;
             const box = document.getElementById('excessBox').value;
             const pallet = document.getElementById('excessPallet').value;
-            const remarks = document.getElementById('excessRemarks').value;
 
             // Validation to avoid accidental barcode input in pallet field (detects long numeric strings)
             if (pallet.length > 10 && /^\d+$/.test(pallet)) {
