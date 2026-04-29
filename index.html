@@ -2784,31 +2784,49 @@
         }
 
         async function exportExcessToExcel() {
-            const dateFilterVal = document.getElementById('excessFilterDate')?.value || '';
-            const boxSearchVal = document.getElementById('excessBoxSearch')?.value.toLowerCase() || '';
-            const genSearchVal = (document.getElementById('excessGeneralSearch')?.value || '').toLowerCase();
-            const remarkFilterVal = document.getElementById('excessRemarkFilter')?.value || '';
-            const filterISOVal = dateFilterVal ? toLocalISO(dateFilterVal) : null;
+            const exportChoice = confirm("Select Export Mode:\n\nOK: Export current FILTERED view\nCancel: Export ALL data from Supabase");
+            
+            let dataToExport = [];
+            
+            if (!exportChoice) {
+                // Option 2: Extract all from Supabase
+                toggleLoader(true);
+                const { data, error } = await supabaseClient.from('excess_scans').select('*').order('timestamp', { ascending: false });
+                if (error) {
+                    toggleLoader(false);
+                    return showToast("Fetch Error: " + error.message, "error");
+                }
+                dataToExport = data;
+            } else {
+                // Option 1: Extract based on filtered view
+                const dateFilterVal = document.getElementById('excessFilterDate')?.value || '';
+                const boxSearchVal = document.getElementById('excessBoxSearch')?.value.toLowerCase() || '';
+                const genSearchVal = (document.getElementById('excessGeneralSearch')?.value || '').toLowerCase();
+                const remarkFilterVal = document.getElementById('excessRemarkFilter')?.value || '';
+                const filterISOVal = dateFilterVal ? toLocalISO(dateFilterVal) : null;
 
-            // Use exactly the same filtering logic as the render() function
-            const filteredData = state.excessScans.filter(s => {
-                const matchesDc = !state.activeDcCode || s.dcCode === state.activeDcCode;
-                const matchesBox = !boxSearchVal || (s.box && s.box.toString().toLowerCase().includes(boxSearchVal));
-                const matchesDate = !filterISOVal || (toLocalISO(s.timestamp) === filterISOVal);
-                const matchesRemark = !remarkFilterVal || s.remarks === remarkFilterVal;
-                const matchesGen = !genSearchVal || 
-                    (s.barcode && s.barcode.toLowerCase().includes(genSearchVal)) || 
-                    (s.scannerName && s.scannerName.toLowerCase().includes(genSearchVal)) || 
-                    (s.scannerId && s.scannerId.toLowerCase().includes(genSearchVal)) || 
-                    (s.pallet && s.pallet.toLowerCase().includes(genSearchVal)) || 
-                    (s.box && s.box.toString().toLowerCase().includes(genSearchVal)) ||
-                    (s.remarks && s.remarks.toLowerCase().includes(genSearchVal));
-                return matchesBox && matchesDate && matchesGen && matchesDc && matchesRemark;
-            });
+                dataToExport = state.excessScans.filter(s => {
+                    const matchesDc = !state.activeDcCode || s.dcCode === state.activeDcCode;
+                    const matchesBox = !boxSearchVal || (s.box && s.box.toString().toLowerCase().includes(boxSearchVal));
+                    const matchesDate = !filterISOVal || (toLocalISO(s.timestamp) === filterISOVal);
+                    const matchesRemark = !remarkFilterVal || s.remarks === remarkFilterVal;
+                    const matchesGen = !genSearchVal || 
+                        (s.barcode && s.barcode.toLowerCase().includes(genSearchVal)) || 
+                        (s.scannerName && s.scannerName.toLowerCase().includes(genSearchVal)) || 
+                        (s.scannerId && s.scannerId.toLowerCase().includes(genSearchVal)) || 
+                        (s.pallet && s.pallet.toLowerCase().includes(genSearchVal)) || 
+                        (s.box && s.box.toString().toLowerCase().includes(genSearchVal)) ||
+                        (s.remarks && s.remarks.toLowerCase().includes(genSearchVal));
+                    return matchesBox && matchesDate && matchesGen && matchesDc && matchesRemark;
+                });
+                toggleLoader(true);
+            }
 
-            if (filteredData.length === 0) return showToast("No records found to export!", "error");
+            if (dataToExport.length === 0) {
+                toggleLoader(false);
+                return showToast("No records found to export!", "error");
+            }
 
-            toggleLoader(true);
             setTimeout(() => {
                 try {
                     let csvContent = "";
@@ -2818,7 +2836,7 @@
                         // Export Scanner Summary
                         const headers = ["Lead Scanner", "Lead ID", "Assistant 1", "Asst 1 ID", "Assistant 2", "Asst 2 ID", "Total Scans", "Total Units", "Unique Items", "Last Active"];
                         const scannerStats = {};
-                        filteredData.forEach(s => {
+                        dataToExport.forEach(s => {
                             const id = s.scannerId || 'Unknown';
                             if (!scannerStats[id]) {
                                 scannerStats[id] = { id, name: s.scannerName || id, count: 0, qty: 0, items: new Set(), last: s.timestamp, a1: s.assistant1Name, a1id: s.assistant1Id, a2: s.assistant2Name, a2id: s.assistant2Id };
@@ -2840,7 +2858,7 @@
                         // Export Detailed Log
                         const headers = ["Timestamp", "Lead Scanner", "Lead ID", "Assistant 1", "Asst 1 ID", "Assistant 2", "Asst 2 ID", "Barcode", "SKU", "Description", "Remarks", "Qty", "Box Number", "Pallet Ref", "DC Code"];
                         const rows = [headers.join(',')];
-                        filteredData.forEach(s => {
+                        dataToExport.forEach(s => {
                             const row = [
                                 new Date(s.timestamp).toLocaleString(),
                                 s.scannerName, s.scannerId || '--',
@@ -2856,7 +2874,7 @@
                     }
 
                     downloadFile(csvContent, fileName);
-                    showToast(`Exported ${filteredData.length} records.`, "success");
+                    showToast(`Exported ${dataToExport.length} records.`, "success");
                 } finally {
                     toggleLoader(false);
                 }
