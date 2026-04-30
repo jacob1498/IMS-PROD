@@ -2871,6 +2871,14 @@
                 try {
                     let csvContent = "";
                     let fileName = "";
+                    const extractionTime = new Date().toLocaleString();
+                    const reportName = state.activeExcessSubTab === 'summary' ? "Excess Scanner Summary" : "Excess Detailed Log";
+                    const totalLines = dataToExport.length;
+                    const fromId = dataToExport.length > 0 ? dataToExport[dataToExport.length - 1].id : '--';
+                    const toId = dataToExport.length > 0 ? dataToExport[0].id : '--';
+
+                    // Created a Summary Header section to act as the "Summary Sheet"
+                    let summaryHeader = `"REPORT SUMMARY"\n"Report Name","${reportName}"\n"Extracted At","${extractionTime}"\n"Total Records","${totalLines}"\n"ID Range","From ID ${fromId} to ID ${toId}"\n\n`;
 
                     if (state.activeExcessSubTab === 'summary') {
                         // Export Scanner Summary
@@ -2893,13 +2901,16 @@
                             rows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
                         });
                         csvContent = rows.join("\n");
+                        csvContent = summaryHeader + rows.join("\n");
                         fileName = `Excess_Scanner_Summary_${new Date().toISOString().slice(0,10)}.csv`;
                     } else {
                         // Export Detailed Log
-                        const headers = ["Timestamp", "Lead Scanner", "Lead ID", "Assistant 1", "Asst 1 ID", "Assistant 2", "Asst 2 ID", "Barcode", "SKU", "Description", "Remarks", "Qty", "Box Number", "Pallet Ref", "DC Code"];
+                        
+                        const headers = ["Line No", "Timestamp", "Lead Scanner", "Lead ID", "Assistant 1", "Asst 1 ID", "Assistant 2", "Asst 2 ID", "Barcode", "SKU", "Description", "Remarks", "Qty", "Box Number", "Pallet Ref", "DC Code"];
                         const rows = [headers.join(',')];
                         dataToExport.forEach(s => {
                             const row = [
+                                s.id, // Added Line Number from Supabase ID
                                 new Date(s.timestamp).toLocaleString(),
                                 s.scannerName, s.scannerId || '--',
                                 s.assistant1Name || '--', s.assistant1Id || '--',
@@ -2910,6 +2921,7 @@
                             rows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
                         });
                         csvContent = rows.join("\n");
+                        csvContent = summaryHeader + rows.join("\n");
                         fileName = `Excess_Detailed_Log_${new Date().toISOString().slice(0,10)}.csv`;
                     }
 
