@@ -676,9 +676,12 @@
         }
         .toast {
             padding: 12px 20px;
+            padding: 20px 40px;
             background: white;
             border-radius: 8px;
             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
             border-left: 4px solid var(--primary);
             display: flex;
             align-items: center;
@@ -687,6 +690,11 @@
             font-weight: 600;
             min-height: 75px;
             min-width: 130px;
+            gap: 15px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            min-height: 100px;
+            min-width: 300px;
             justify-content: center;
             text-align: center;
             animation: toastIn 0.3s ease forwards, toastOut 0.3s ease 2.7s forwards;
@@ -2516,10 +2524,12 @@
             if (data) {
                 document.getElementById('excessSku').value = data.sku || '--';
                 document.getElementById('excessDesc').value = data.description || '--';
+                showToast("SKU Found", "success");
                 document.getElementById('excessQty').focus();
             } else {
                 document.getElementById('excessSku').value = "NOT FOUND";
                 document.getElementById('excessDesc').value = "N/A - Item not in Master";
+                showToast("⚠️ ITEM NOT IN MASTER!", "error");
                 document.getElementById('excessQty').focus();
             }
         }
