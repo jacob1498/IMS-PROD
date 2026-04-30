@@ -1460,6 +1460,7 @@
                         </div>
                         <div style="grid-column: 1 / -1;">
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Lead Scanner</label>
+                            <input type="text" id="excessScannerSearch" placeholder="Search lead scanner..." style="width: 100%; box-sizing: border-box; margin-top: 4px; margin-bottom: 8px;" oninput="render()">
                             <select id="excessScannerInput" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white;" onchange="localStorage.setItem('preferredScannerId', this.value)"></select>
                         </div>
                         <div style="grid-column: 1 / -1;">
@@ -1474,7 +1475,7 @@
                         <h3 style="grid-column: 1 / -1; font-size: 0.75rem; text-transform: uppercase; color: var(--primary); margin: 15px 0 5px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px; letter-spacing: 0.05em;">Entry Details</h3>
                         <div style="grid-column: 1 / -1;">
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Barcode</label>
-                            <input type="text" id="excessBarcode" placeholder="Scan Barcode" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') lookupSku(this.value)">
+                            <input type="text" id="excessBarcode" placeholder="Scan Barcode" autocomplete="off" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') lookupSku(this.value)">
                         </div>
                         <div style="grid-column: 1 / -1;">
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">SKU Code</label>
@@ -1491,13 +1492,12 @@
                         <div>
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Box Number</label>
                             <div style="display: flex; gap: 4px; margin-top: 4px;">
-                                <input type="text" id="excessBox" placeholder="Ex-..." style="flex: 1; box-sizing: border-box;" onkeyup="if(event.key==='Enter') document.getElementById('excessPallet').focus()">
-                                <button onclick="generateBoxNumber()" style="padding: 0 8px; background: var(--bg); color: var(--primary); border: 1px solid var(--border);" title="Generate ID"><span class="material-symbols-outlined" style="font-size: 18px;">magic_button</span></button>
+                                <input type="text" id="excessBox" placeholder="Ex-..." autocomplete="off" style="width: 100%; box-sizing: border-box;" onkeyup="if(event.key==='Enter') document.getElementById('excessPallet').focus()">
                             </div>
                         </div>
                         <div>
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Pallet Reference</label>
-                            <input type="text" id="excessPallet" placeholder="P-999" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') addExcessScan()">
+                            <input type="text" id="excessPallet" placeholder="P-999" autocomplete="off" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') addExcessScan()">
                         </div>
                     </div>
                 </div>
@@ -2641,26 +2641,6 @@
             const box = document.getElementById('excessBox').value;
             const pallet = document.getElementById('excessPallet').value;
 
-            // Prompt to export when a pallet is finished (detected by pallet ID change)
-            const lastScan = state.excessScans[0];
-            if (lastScan && lastScan.pallet !== pallet && pallet !== '' && lastScan.pallet !== '--') {
-                const shouldExport = confirm(`You have changed the Pallet Reference from "${lastScan.pallet}" to "${pallet}".\n\nWould you like to export the report for the finished Pallet (${lastScan.pallet}) now?`);
-                if (shouldExport) {
-                    const originalSearch = document.getElementById('excessGeneralSearch').value;
-                    const originalTab = state.activeExcessSubTab;
-                    
-                    // Temporarily filter for the old pallet to export its specific data
-                    document.getElementById('excessGeneralSearch').value = lastScan.pallet;
-                    state.activeExcessSubTab = 'log';
-                    render();
-                    await exportExcessToExcel();
-                    
-                    // Restore previous search/tab state
-                    document.getElementById('excessGeneralSearch').value = originalSearch;
-                    state.activeExcessSubTab = originalTab;
-                }
-            }
-
             // Validation to avoid accidental barcode input in pallet field (detects long numeric strings)
             if (pallet.length > 10 && /^\d+$/.test(pallet)) {
                 showToast("Pallet reference looks like a barcode. Please check your input.", "error");
@@ -2725,6 +2705,8 @@
             // Clear only item-specific fields to allow batch scanning into same Pallet/Box
             document.getElementById('excessBarcode').value = '';
             document.getElementById('excessQty').value = '';
+            document.getElementById('excessBox').value = '';
+            document.getElementById('excessPallet').value = '';
             document.getElementById('excessBarcode').focus();
             render();
         }
@@ -4524,14 +4506,19 @@
             }
 
             // Update Excess Scanner Dropdown
-            ['excessScannerInput', 'excessAssistant1Input', 'excessAssistant2Input'].forEach(id => {
+            const scannerSearchTerm = document.getElementById('excessScannerSearch')?.value.toLowerCase() || '';
+            ['excessScannerInput', 'excessAssistant1Input', 'excessAssistant2Input'].forEach(id => { // Keep existing logic for assistants
                 const el = document.getElementById(id);
                 if (el && state.members.length > 0) {
                     let currentVal = el.value;
-                    const options = state.members
-                    .filter(m => m.role === 'Scanner')
-                    .map(m => `<option value="${m.userid}">${m.name} (${m.userid} - ${m.role})</option>`).join('');
-                    
+                    const filteredScanners = state.members.filter(m => 
+                        m.role === 'Scanner' && 
+                        (m.name.toLowerCase().includes(scannerSearchTerm) || m.userid.toLowerCase().includes(scannerSearchTerm))
+                    );
+                    const options = filteredScanners
+                        .map(m => `<option value="${m.userid}">${m.name} (${m.userid} - ${m.role})</option>`).join('');
+
+                    // For excessScannerInput, add the "ALL SCANNERS" option
                     el.innerHTML = `<option value="">${id === 'excessScannerInput' ? 'ALL SCANNERS' : 'None'}</option>` + options;
                     if (currentVal) el.value = currentVal;
                     else if (id === 'excessScannerInput' && localStorage.getItem('preferredScannerId')) el.value = localStorage.getItem('preferredScannerId');
