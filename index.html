@@ -1704,6 +1704,21 @@
             </div>
         </div>
 
+        <!-- Generic Confirmation Modal -->
+        <div id="confirmationModal" class="modal-overlay hidden" onclick="closeConfirmationModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3 id="confirmModalTitle">Confirm Action</h3>
+                    <button onclick="closeConfirmationModal()" style="background:none; color:var(--text-light); padding:0"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <p id="confirmModalMessage" style="font-size: 0.9rem; color: var(--text-light); margin-bottom: 24px; line-height: 1.5;"></p>
+                <div id="confirmModalActions" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Buttons dynamically injected here -->
+                </div>
+                <button onclick="closeConfirmationModal()" style="width:100%; margin-top:15px; background:var(--bg); color:var(--text); font-size: 0.8rem;">Dismiss</button>
+            </div>
+        </div>
+
         <!-- Pick Zone Selection Modal -->
         <div id="zoneModal" class="modal-overlay hidden" onclick="closeZoneModal()">
             <div class="modal-content" onclick="event.stopPropagation()">
@@ -2468,6 +2483,10 @@
             document.getElementById('registerModal').classList.add('hidden');
         }
 
+        function closeConfirmationModal() {
+            document.getElementById('confirmationModal').classList.add('hidden');
+        }
+
         async function lookupSku(barcode) {
             if (!barcode || !supabaseClient) return;
             const val = barcode.trim();
@@ -2745,7 +2764,16 @@
         }
 
         async function deleteExcessScan(id) {
-            if (!confirm("Delete this log entry?")) return;
+            const modal = document.getElementById('confirmationModal');
+            document.getElementById('confirmModalTitle').innerText = "Delete Entry";
+            document.getElementById('confirmModalMessage').innerText = "Are you sure you want to delete this log entry? This cannot be undone.";
+            const actions = document.getElementById('confirmModalActions');
+            actions.innerHTML = `<button onclick="executeDeleteExcess('${id}')" style="background: var(--danger); padding: 12px;">Delete Permanently</button>`;
+            modal.classList.remove('hidden');
+        }
+
+        async function executeDeleteExcess(id) {
+            closeConfirmationModal();
             toggleLoader(true);
             const { error } = await supabaseClient.from('excess_scans').delete().eq('id', id);
             toggleLoader(false);
@@ -2784,21 +2812,27 @@
         }
 
         async function exportExcessToExcel() {
-            const exportChoice = confirm("Select Export Mode:\n\nOK: Export current FILTERED view\nCancel: Export ALL data from Supabase");
+            const modal = document.getElementById('confirmationModal');
+            document.getElementById('confirmModalTitle').innerText = "Export Report";
+            document.getElementById('confirmModalMessage').innerText = "Choose the data range you wish to export.";
+            const actions = document.getElementById('confirmModalActions');
             
+            actions.innerHTML = `
+                <button id="btnExportFiltered" style="background: var(--primary); padding: 12px;">Export Current Filtered View</button>
+                <button id="btnExportAll" style="background: var(--success); padding: 12px;">Export Full History (All Data)</button>
+            `;
+            modal.classList.remove('hidden');
+
+            document.getElementById('btnExportFiltered').onclick = () => processExport('filtered');
+            document.getElementById('btnExportAll').onclick = () => processExport('all');
+        }
+
+        async function processExport(mode) {
+            closeConfirmationModal();
+            toggleLoader(true);
             let dataToExport = [];
-            
-            if (!exportChoice) {
-                // Option 2: Extract all from Supabase
-                toggleLoader(true);
-                const { data, error } = await supabaseClient.from('excess_scans').select('*').order('timestamp', { ascending: false });
-                if (error) {
-                    toggleLoader(false);
-                    return showToast("Fetch Error: " + error.message, "error");
-                }
-                dataToExport = data;
-            } else {
-                // Option 1: Extract based on filtered view
+
+            if (mode === 'filtered') {
                 const dateFilterVal = document.getElementById('excessFilterDate')?.value || '';
                 const boxSearchVal = document.getElementById('excessBoxSearch')?.value.toLowerCase() || '';
                 const genSearchVal = (document.getElementById('excessGeneralSearch')?.value || '').toLowerCase();
@@ -2819,7 +2853,13 @@
                         (s.remarks && s.remarks.toLowerCase().includes(genSearchVal));
                     return matchesBox && matchesDate && matchesGen && matchesDc && matchesRemark;
                 });
-                toggleLoader(true);
+            } else {
+                const { data, error } = await supabaseClient.from('excess_scans').select('*').order('timestamp', { ascending: false });
+                if (error) {
+                    toggleLoader(false);
+                    return showToast("Fetch Error: " + error.message, "error");
+                }
+                dataToExport = data;
             }
 
             if (dataToExport.length === 0) {
@@ -2875,17 +2915,15 @@
 
                     downloadFile(csvContent, fileName);
                     showToast(`Exported ${dataToExport.length} records.`, "success");
-                } finally {
-                    toggleLoader(false);
-                }
-            }, 100);
+                    } finally {
+                        toggleLoader(false);
+                    }
+                }, 100);
         }
 
         async function smartClearExcessData() {
-            const dateFilter = document.getElementById('excessFilterDate').value;
             const boxFilter = document.getElementById('excessBoxSearch').value.toLowerCase();
             const genSearch = (document.getElementById('excessGeneralSearch')?.value || '').toLowerCase();
-            
             let filteredData = [...state.excessScans];
 
             if (state.activeDcCode) filteredData = filteredData.filter(s => s.dcCode === state.activeDcCode);
@@ -2904,22 +2942,35 @@
                 (s.remarks && s.remarks.toLowerCase().includes(genSearch)));
 
             if (filteredData.length === 0) return showToast("No records found matching current filters to clear.", "error");
-            if (!confirm(`Are you sure you want to PERMANENTLY DELETE ${filteredData.length} filtered records from the database? This action cannot be undone.`)) return;
 
-            toggleLoader(true);
-            try {
-                const idsToDelete = filteredData.map(s => s.id);
-                // Batch delete from Supabase using .in()
-                const { error } = await supabaseClient.from('excess_scans').delete().in('id', idsToDelete);
-                if (error) throw error;
+            const modal = document.getElementById('confirmationModal');
+            const title = document.getElementById('confirmModalTitle');
+            const msg = document.getElementById('confirmModalMessage');
+            const actions = document.getElementById('confirmModalActions');
+
+            title.innerText = "Confirm Deletion";
+            msg.innerHTML = `Are you sure you want to <strong>PERMANENTLY DELETE</strong> ${filteredData.length} filtered records? This action cannot be undone.`;
+            
+            actions.innerHTML = `
+                <button id="btnConfirmDelete" style="background: var(--danger); padding: 12px;">Yes, Delete Records</button>
+            `;
+            modal.classList.remove('hidden');
+
+            document.getElementById('btnConfirmDelete').onclick = async () => {
+                closeConfirmationModal();
+                toggleLoader(true);
+                try {
+                    const idsToDelete = filteredData.map(s => s.id);
+                    const { error } = await supabaseClient.from('excess_scans').delete().in('id', idsToDelete);
+                    if (error) throw error;
                 
-                showToast(`Successfully cleared ${filteredData.length} records.`, "success");
-                // The realtime subscription handles the local state update automatically.
-            } catch (err) {
-                showToast("Clear failed: " + err.message, "error");
-            } finally {
-                toggleLoader(false);
-            }
+                    showToast(`Successfully cleared ${filteredData.length} records.`, "success");
+                } catch (err) {
+                    showToast("Clear failed: " + err.message, "error");
+                } finally {
+                    toggleLoader(false);
+                }
+            };
         }
 
         async function handleMemberUpload(event) {
@@ -5120,6 +5171,116 @@
                 if (!t.completed && t.startTime) {
                     const diffHours = (now - new Date(t.startTime)) / 3600000;
                     const alertKey = `count-${t.userid}-${t.startTime}`;
+                    if (diffHours > 1 && !notifiedAlerts.has(alertKey)) {
+                        showToast(`LONG COUNT: ${t.userName} at ${t.location}`, 'error');
+                        notifiedAlerts.add(alertKey);
+                        alertTriggered = true;
+                    }
+                }
+            });
+
+            if (alertTriggered) playAlertSound();
+        }
+        setInterval(checkThresholdAlerts, 30000); // Check every 30 seconds
+
+        updateClock();
+
+        // Global listener for scanner selection persistence
+        document.addEventListener('change', (e) => {
+            if (e.target && e.target.id === 'excessScannerInput') {
+                localStorage.setItem('preferredScannerId', e.target.value);
+            }
+        });
+
+        // Initialize filter values from state safely
+        const fromFilter = document.getElementById('historyFromDate');
+        const toFilter = document.getElementById('historyToDate');
+        
+        if (fromFilter) fromFilter.value = state.historyFilterFromDate || '';
+        if (toFilter) toFilter.value = state.historyFilterToDate || '';
+
+        // Initial Load
+        // Restore UI state from storage
+        switchDashboardTab(state.activeHomeTab || 'attendance');
+        switchFooterTab(state.activeMainTab || 'home');
+        switchAttendanceSubTab(state.activeAttendanceSubTab || 'checkin');
+        switchProductivitySubTab(state.activeProductivitySubTab || 'active');
+        switchSummarySubTab(state.activeSummarySubTab || 'shift');
+
+        if (document.getElementById('excessDcFilter')) document.getElementById('excessDcFilter').value = state.activeDcCode || '';
+
+        if (supabaseClient) {
+            fetchInitialData(true);
+            initRealtime();
+            // Auto-refresh every 2 seconds to ensure cross-device synchronization
+            setInterval(() => fetchInitialData(false), 2000);
+        } else {
+            render();
+        }
+    </script>
+</body>
+</html>
+</html>
+
+        // Initialize filter values from state safely
+        const fromFilter = document.getElementById('historyFromDate');
+        const toFilter = document.getElementById('historyToDate');
+        
+        if (fromFilter) fromFilter.value = state.historyFilterFromDate || '';
+        if (toFilter) toFilter.value = state.historyFilterToDate || '';
+
+        // Initial Load
+        // Restore UI state from storage
+        switchDashboardTab(state.activeHomeTab || 'attendance');
+        switchFooterTab(state.activeMainTab || 'home');
+        switchAttendanceSubTab(state.activeAttendanceSubTab || 'checkin');
+        switchProductivitySubTab(state.activeProductivitySubTab || 'active');
+        switchSummarySubTab(state.activeSummarySubTab || 'shift');
+
+        if (document.getElementById('excessDcFilter')) document.getElementById('excessDcFilter').value = state.activeDcCode || '';
+
+        if (supabaseClient) {
+            fetchInitialData(true);
+            initRealtime();
+            // Auto-refresh every 2 seconds to ensure cross-device synchronization
+            setInterval(() => fetchInitialData(false), 2000);
+        } else {
+            render();
+        }
+    </script>
+</body>
+</html>
+</html>
+
+        // Initialize filter values from state safely
+        const fromFilter = document.getElementById('historyFromDate');
+        const toFilter = document.getElementById('historyToDate');
+        
+        if (fromFilter) fromFilter.value = state.historyFilterFromDate || '';
+        if (toFilter) toFilter.value = state.historyFilterToDate || '';
+
+        // Initial Load
+        // Restore UI state from storage
+        switchDashboardTab(state.activeHomeTab || 'attendance');
+        switchFooterTab(state.activeMainTab || 'home');
+        switchAttendanceSubTab(state.activeAttendanceSubTab || 'checkin');
+        switchProductivitySubTab(state.activeProductivitySubTab || 'active');
+        switchSummarySubTab(state.activeSummarySubTab || 'shift');
+
+        if (document.getElementById('excessDcFilter')) document.getElementById('excessDcFilter').value = state.activeDcCode || '';
+
+        if (supabaseClient) {
+            fetchInitialData(true);
+            initRealtime();
+            // Auto-refresh every 2 seconds to ensure cross-device synchronization
+            setInterval(() => fetchInitialData(false), 2000);
+        } else {
+            render();
+        }
+    </script>
+</body>
+</html>
+</html>
                     if (diffHours > 1 && !notifiedAlerts.has(alertKey)) {
                         showToast(`LONG COUNT: ${t.userName} at ${t.location}`, 'error');
                         notifiedAlerts.add(alertKey);
