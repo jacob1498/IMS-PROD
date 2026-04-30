@@ -4250,8 +4250,10 @@
             const filterISOVal = dateFilterVal ? toLocalISO(dateFilterVal) : null;
             const genSearchVal = (document.getElementById('excessGeneralSearch')?.value || '').toLowerCase();
             const remarkFilterVal = document.getElementById('excessRemarkFilter')?.value || '';
+            const scannerIdVal = document.getElementById('excessScannerInput')?.value || '';
 
             const filteredExcess = state.excessScans.filter(s => {
+                const matchesScanner = !scannerIdVal || s.scannerId === scannerIdVal;
                 const matchesDc = !state.activeDcCode || s.dcCode === state.activeDcCode;
                 const matchesBox = !boxSearchVal || (s.box && s.box.toString().toLowerCase().includes(boxSearchVal));
                 const matchesDate = !filterISOVal || (toLocalISO(s.timestamp) === filterISOVal);
@@ -4263,7 +4265,7 @@
                     (s.pallet && s.pallet.toLowerCase().includes(genSearchVal)) || 
                     (s.box && s.box.toString().toLowerCase().includes(genSearchVal)) ||
                     (s.remarks && s.remarks.toLowerCase().includes(genSearchVal));
-                return matchesBox && matchesDate && matchesGen && matchesDc && matchesRemark;
+                return matchesScanner && matchesBox && matchesDate && matchesGen && matchesDc && matchesRemark;
             });
 
             // Excess Scan Summary per Scanner population (Dashboard Tab)
@@ -4625,7 +4627,13 @@
                     
                     const labelEl = document.getElementById('excessSummaryTotalLabel');
                     if (labelEl) {
-                        labelEl.innerText = remarkFilterVal ? `${remarkFilterVal} Scans` : 'Total Scans';
+                        let baseLabel = remarkFilterVal ? `${remarkFilterVal} Scans` : 'Total Scans';
+                        if (scannerIdVal) {
+                            const scanner = state.members.find(m => m.userid === scannerIdVal);
+                            labelEl.innerText = `${baseLabel} (${scanner ? scanner.name : scannerIdVal})`;
+                        } else {
+                            labelEl.innerText = baseLabel;
+                        }
                     }
 
                     // Note: excessSummaryUsers is now handled in the Dashboard Summary block above for consistency
@@ -5201,6 +5209,7 @@
         document.addEventListener('change', (e) => {
             if (e.target && e.target.id === 'excessScannerInput') {
                 localStorage.setItem('preferredScannerId', e.target.value);
+                render(); // Automatic filter update when lead scanner changes
             }
         });
 
