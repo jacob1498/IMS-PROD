@@ -685,6 +685,10 @@
             gap: 10px;
             font-size: 0.9rem;
             font-weight: 600;
+            min-height: 75px;
+            min-width: 130px;
+            justify-content: center;
+            text-align: center;
             animation: toastIn 0.3s ease forwards, toastOut 0.3s ease 2.7s forwards;
         }
         .toast.success { border-left-color: var(--success); }
@@ -1947,6 +1951,7 @@
             excessLogisticsLocked: false,
             activeExcessSubTab: 'log',
             activeDcCode: '',
+            lastExcessScanTime: Date.now(),
             excessPage: 1,
             excessRowsPerPage: 10
         };
@@ -2711,6 +2716,7 @@
                 return;
             }
             state.editingExcessId = null;
+            state.lastExcessScanTime = Date.now();
 
             showToast(`Logged to Pallet ${pallet}`, "success");
             state.excessLogisticsVisible = false;
@@ -4526,7 +4532,7 @@
                     .filter(m => m.role === 'Scanner')
                     .map(m => `<option value="${m.userid}">${m.name} (${m.userid} - ${m.role})</option>`).join('');
                     
-                    el.innerHTML = `<option value="" ${id !== 'excessScannerInput' ? 'selected' : 'disabled'}>${id === 'excessScannerInput' ? 'Select Lead...' : 'None'}</option>` + options;
+                    el.innerHTML = `<option value="">${id === 'excessScannerInput' ? 'ALL SCANNERS' : 'None'}</option>` + options;
                     if (currentVal) el.value = currentVal;
                     else if (id === 'excessScannerInput' && localStorage.getItem('preferredScannerId')) el.value = localStorage.getItem('preferredScannerId');
                 }
@@ -5202,6 +5208,20 @@
             if (alertTriggered) playAlertSound();
         }
         setInterval(checkThresholdAlerts, 30000); // Check every 30 seconds
+
+        // Inactivity Timer for Excess Scan Lead Scanner
+        setInterval(() => {
+            if (state.lastExcessScanTime && (Date.now() - state.lastExcessScanTime > 3600000)) { // 1 Hour
+                const scannerInput = document.getElementById('excessScannerInput');
+                if (scannerInput && scannerInput.value !== "") {
+                    scannerInput.value = "";
+                    localStorage.setItem('preferredScannerId', "");
+                    state.lastExcessScanTime = Date.now();
+                    render();
+                    showToast("Lead Scanner reset due to 1hr inactivity", "info");
+                }
+            }
+        }, 60000); // Check every minute
 
         updateClock();
 
