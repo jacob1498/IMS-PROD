@@ -1447,7 +1447,6 @@
                         <div id="excessLogisticsFields" style="display: contents;">
                         <div style="grid-column: 1 / -1;">
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Remarks</label>
-                            <select id="excessRemarks" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white; font-weight: bold; color: var(--text);" onkeyup="if(event.key==='Enter') document.getElementById('excessDcInput').focus()">
                             <select id="excessRemarks" onchange="render()" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white; font-weight: bold; color: var(--text);" onkeyup="if(event.key==='Enter') document.getElementById('excessDcInput').focus()">
                                 <option value="">SELECT REMARK</option>
                                 <option value="Damaged">Damaged</option>
@@ -1484,8 +1483,8 @@
                         <h3 style="grid-column: 1 / -1; font-size: 0.75rem; text-transform: uppercase; color: var(--primary); margin: 15px 0 5px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px; letter-spacing: 0.05em;">Entry Details</h3>
                         <div style="grid-column: 1 / -1;">
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Barcode</label>
-                            <input type="text" id="excessBarcode" placeholder="Scan Barcode" autocomplete="off" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') lookupSku(this.value)">
                             <input type="text" id="excessBarcode" placeholder="Scan Barcode" autocomplete="off" maxlength="15" inputmode="numeric" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') lookupSku(this.value)">
+                            <input type="text" id="excessBarcode" placeholder="Scan Barcode" autocomplete="off" maxlength="15" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') lookupSku(this.value)">
                         </div>
                         <div style="grid-column: 1 / -1;">
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">SKU Code</label>
@@ -2505,6 +2504,16 @@
         async function lookupSku(barcode) {
             if (!barcode || !supabaseClient) return;
             const val = barcode.trim();
+
+            // Barcode validation: Integer only and max 15 digits
+            if (!/^\d+$/.test(val)) {
+                showToast("Barcode must be an integer (numbers only)", "error");
+                return;
+            }
+            if (val.length > 15) {
+                showToast("Barcode cannot exceed 15 digits", "error");
+                return;
+            }
             
             document.getElementById('excessSku').value = "Searching...";
             document.getElementById('excessDesc').value = "Searching...";
@@ -4591,6 +4600,8 @@
                 if (remarksVal === 'Stocks Transfer') {
                     boxInput.placeholder = "SVI-B...";
                     palletInput.placeholder = "SVI-P...";
+                    boxInput.placeholder = "SVI-B1";
+                    palletInput.placeholder = "SVI-P1";
                 } else {
                     boxInput.placeholder = "Ex-...";
                     palletInput.placeholder = "P-999";
