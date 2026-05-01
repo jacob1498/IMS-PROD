@@ -1483,7 +1483,6 @@
                         <h3 style="grid-column: 1 / -1; font-size: 0.75rem; text-transform: uppercase; color: var(--primary); margin: 15px 0 5px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px; letter-spacing: 0.05em;">Entry Details</h3>
                         <div style="grid-column: 1 / -1;">
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Barcode</label>
-                            <input type="text" id="excessBarcode" placeholder="Scan Barcode" autocomplete="off" maxlength="15" inputmode="numeric" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') lookupSku(this.value)">
                             <input type="text" id="excessBarcode" placeholder="Scan Barcode" autocomplete="off" maxlength="15" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') lookupSku(this.value)">
                         </div>
                         <div style="grid-column: 1 / -1;">
@@ -2507,7 +2506,7 @@
 
             // Barcode validation: Integer only and max 15 digits
             if (!/^\d+$/.test(val)) {
-                showToast("Barcode must be an integer (numbers only)", "error");
+                showToast("Barcode must contain numbers only", "error");
                 return;
             }
             if (val.length > 15) {
@@ -2664,7 +2663,7 @@
 
             // Barcode validation: Integer only and max 15 digits
             if (!/^\d+$/.test(barcode)) {
-                showToast("Barcode must be an integer (numbers only)", "error");
+                showToast("Barcode must contain numbers only", "error");
                 return;
             }
             if (barcode.length > 15) {
