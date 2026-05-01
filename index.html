@@ -1448,6 +1448,7 @@
                         <div style="grid-column: 1 / -1;">
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Remarks</label>
                             <select id="excessRemarks" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white; font-weight: bold; color: var(--text);" onkeyup="if(event.key==='Enter') document.getElementById('excessDcInput').focus()">
+                            <select id="excessRemarks" onchange="render()" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; background: white; font-weight: bold; color: var(--text);" onkeyup="if(event.key==='Enter') document.getElementById('excessDcInput').focus()">
                                 <option value="">SELECT REMARK</option>
                                 <option value="Damaged">Damaged</option>
                                 <option value="Excess">Excess</option>
@@ -1484,6 +1485,7 @@
                         <div style="grid-column: 1 / -1;">
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Barcode</label>
                             <input type="text" id="excessBarcode" placeholder="Scan Barcode" autocomplete="off" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') lookupSku(this.value)">
+                            <input type="text" id="excessBarcode" placeholder="Scan Barcode" autocomplete="off" maxlength="15" inputmode="numeric" style="width: 100%; box-sizing: border-box; margin-top: 4px;" onkeyup="if(event.key==='Enter') lookupSku(this.value)">
                         </div>
                         <div style="grid-column: 1 / -1;">
                             <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">SKU Code</label>
@@ -2650,6 +2652,28 @@
             const qty = document.getElementById('excessQty').value;
             const box = document.getElementById('excessBox').value;
             const pallet = document.getElementById('excessPallet').value;
+
+            // Barcode validation: Integer only and max 15 digits
+            if (!/^\d+$/.test(barcode)) {
+                showToast("Barcode must be an integer (numbers only)", "error");
+                return;
+            }
+            if (barcode.length > 15) {
+                showToast("Barcode cannot exceed 15 digits", "error");
+                return;
+            }
+
+            // Pattern validation for Stocks Transfer
+            if (remarks === 'Stocks Transfer') {
+                if (!/^SVI-B\d+$/.test(box)) {
+                    showToast("For Stocks Transfer, Box must follow pattern SVI-B + number (e.g. SVI-B1)", "error");
+                    return;
+                }
+                if (!/^SVI-P\d+$/.test(pallet)) {
+                    showToast("For Stocks Transfer, Pallet must follow pattern SVI-P + number (e.g. SVI-P1)", "error");
+                    return;
+                }
+            }
 
             // Validation to avoid accidental barcode input in pallet field (detects long numeric strings)
             if (pallet.length > 10 && /^\d+$/.test(pallet)) {
@@ -4558,6 +4582,20 @@
             });
             const boxBtn = document.querySelector('button[onclick="generateBoxNumber()"]');
             if (boxBtn) { boxBtn.disabled = isEntryDisabled; boxBtn.style.opacity = isEntryDisabled ? '0.5' : '1'; }
+
+            // Update placeholders based on Remarks selection
+            const remarksVal = document.getElementById('excessRemarks')?.value;
+            const boxInput = document.getElementById('excessBox');
+            const palletInput = document.getElementById('excessPallet');
+            if (boxInput && palletInput) {
+                if (remarksVal === 'Stocks Transfer') {
+                    boxInput.placeholder = "SVI-B...";
+                    palletInput.placeholder = "SVI-P...";
+                } else {
+                    boxInput.placeholder = "Ex-...";
+                    palletInput.placeholder = "P-999";
+                }
+            }
 
             // Render Excess Scan List
             const excessScanList = document.getElementById('excessScanList');
