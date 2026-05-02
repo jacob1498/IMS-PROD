@@ -2540,6 +2540,7 @@
                 document.getElementById('excessSku').value = "NOT FOUND";
                 document.getElementById('excessDesc').value = "N/A - Item not in Master";
                 showToast("⚠️ ITEM NOT IN MASTER!", "error");
+                playAlertSound();
                 document.getElementById('excessQty').focus();
             }
         }
@@ -2844,7 +2845,17 @@
         async function exportExcessToExcel() {
             const modal = document.getElementById('confirmationModal');
             document.getElementById('confirmModalTitle').innerText = "Export Report";
-            document.getElementById('confirmModalMessage').innerText = "Choose the data range you wish to export.";
+            document.getElementById('confirmModalMessage').innerHTML = `
+                <p>Choose the data range you wish to export.</p>
+                <div style="margin-top:15px; display:flex; flex-direction:column; gap:10px; text-align:left;">
+                    <label style="font-size:0.75rem; font-weight:700; color:var(--text-light); text-transform:uppercase;">Full History Range (Line ID)</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="number" id="exportFromId" placeholder="From ID" style="flex:1; padding:8px; border: 1px solid var(--border); border-radius:4px;">
+                        <input type="number" id="exportToId" placeholder="To ID" style="flex:1; padding:8px; border: 1px solid var(--border); border-radius:4px;">
+                    </div>
+                    <small style="font-size:0.65rem; color:var(--text-light)">Enter starting and ending IDs. Use <b>999999</b> for the latest record.</small>
+                </div>
+            `;
             const actions = document.getElementById('confirmModalActions');
             
             actions.innerHTML = `
@@ -2858,6 +2869,9 @@
         }
 
         async function processExport(mode) {
+            const fromIdVal = document.getElementById('exportFromId')?.value;
+            const toIdVal = document.getElementById('exportToId')?.value;
+
             closeConfirmationModal();
             toggleLoader(true);
             let dataToExport = [];
@@ -2884,7 +2898,16 @@
                     return matchesBox && matchesDate && matchesGen && matchesDc && matchesRemark;
                 });
             } else {
-                const { data, error } = await supabaseClient.from('excess_scans').select('*').order('timestamp', { ascending: false });
+                let query = supabaseClient.from('excess_scans').select('*').order('timestamp', { ascending: false });
+                
+                if (fromIdVal && fromIdVal.trim() !== "") {
+                    query = query.gte('id', parseInt(fromIdVal.trim()));
+                }
+                if (toIdVal && toIdVal.trim() !== "" && toIdVal !== "999999") {
+                    query = query.lte('id', parseInt(toIdVal.trim()));
+                }
+
+                const { data, error } = await query;
                 if (error) {
                     toggleLoader(false);
                     return showToast("Fetch Error: " + error.message, "error");
