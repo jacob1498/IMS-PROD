@@ -2923,15 +2923,19 @@
             setTimeout(() => {
                 try {
                     let csvContent = "";
-                    let fileName = "";
                     const extractionTime = new Date().toLocaleString();
+                    // Create a filename-safe local timestamp (YYYY-MM-DD_HH-MM-SS)
+                    const now = new Date();
+                    const fileTimestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_` +
+                                        `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+                    let fileName = "";
                     const reportName = state.activeExcessSubTab === 'summary' ? "Excess Scanner Summary" : "Excess Detailed Log";
                     const totalLines = dataToExport.length;
                     const fromId = dataToExport.length > 0 ? dataToExport[dataToExport.length - 1].id : '--';
                     const toId = dataToExport.length > 0 ? dataToExport[0].id : '--';
 
                     // Created a Summary Header section to act as the "Summary Sheet"
-                    let summaryHeader = `"REPORT SUMMARY"\n"Report Name","${reportName}"\n"Extracted At","${extractionTime}"\n"Total Records","${totalLines}"\n"ID Range","From ID ${fromId} to ID ${toId}"\n\n`;
+                    let summaryHeader = `"REPORT SUMMARY"\n"Report Name","${reportName}"\n"DC Filter","${state.activeDcCode || 'All DCs'}"\n"Extracted At","${extractionTime}"\n"Total Records","${totalLines}"\n"ID Range","From ID ${fromId} to ID ${toId}"\n\n`;
 
                     if (state.activeExcessSubTab === 'summary') {
                         // Export Scanner Summary
@@ -2953,9 +2957,8 @@
                             const row = [stat.name, stat.id, stat.a1, stat.a1id, stat.a2, stat.a2id, stat.count, stat.qty, stat.items.size, new Date(stat.last).toLocaleString()];
                             rows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
                         });
-                        csvContent = rows.join("\n");
                         csvContent = summaryHeader + rows.join("\n");
-                        fileName = `Excess_Scanner_Summary_${new Date().toISOString().slice(0,10)}.csv`;
+                        fileName = `Excess_Scanner_Summary_${fileTimestamp}.csv`;
                     } else {
                         // Export Detailed Log
                         
@@ -2973,9 +2976,8 @@
                             ];
                             rows.push(row.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(","));
                         });
-                        csvContent = rows.join("\n");
                         csvContent = summaryHeader + rows.join("\n");
-                        fileName = `Excess_Detailed_Log_${new Date().toISOString().slice(0,10)}.csv`;
+                        fileName = `Excess_Detailed_Log_${fileTimestamp}.csv`;
                     }
 
                     downloadFile(csvContent, fileName);
@@ -4306,7 +4308,6 @@
             const scannerIdVal = document.getElementById('excessScannerInput')?.value || '';
 
             const filteredExcess = state.excessScans.filter(s => {
-                const matchesScanner = !scannerIdVal || s.scannerId === scannerIdVal;
                 const matchesDc = !state.activeDcCode || s.dcCode === state.activeDcCode;
                 const matchesBox = !boxSearchVal || (s.box && s.box.toString().toLowerCase().includes(boxSearchVal));
                 const matchesDate = !filterISOVal || (toLocalISO(s.timestamp) === filterISOVal);
@@ -4318,7 +4319,7 @@
                     (s.pallet && s.pallet.toLowerCase().includes(genSearchVal)) || 
                     (s.box && s.box.toString().toLowerCase().includes(genSearchVal)) ||
                     (s.remarks && s.remarks.toLowerCase().includes(genSearchVal));
-                return matchesScanner && matchesBox && matchesDate && matchesGen && matchesDc && matchesRemark;
+                return matchesBox && matchesDate && matchesGen && matchesDc && matchesRemark;
             });
 
             // Excess Scan Summary per Scanner population (Dashboard Tab)
@@ -4701,13 +4702,7 @@
                     
                     const labelEl = document.getElementById('excessSummaryTotalLabel');
                     if (labelEl) {
-                        let baseLabel = remarkFilterVal ? `${remarkFilterVal} Scans` : 'Total Scans';
-                        if (scannerIdVal) {
-                            const scanner = state.members.find(m => m.userid === scannerIdVal);
-                            labelEl.innerText = `${baseLabel} (${scanner ? scanner.name : scannerIdVal})`;
-                        } else {
-                            labelEl.innerText = baseLabel;
-                        }
+                        labelEl.innerText = remarkFilterVal ? `${remarkFilterVal} Scans` : 'Total Scans';
                     }
 
                     // Note: excessSummaryUsers is now handled in the Dashboard Summary block above for consistency
@@ -5327,5 +5322,7 @@
             render();
         }
     </script>
+</body>
+</html>
 </body>
 </html>
